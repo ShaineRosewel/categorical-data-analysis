@@ -1,0 +1,136 @@
+---
+title: "Your Thesis Title Here"
+author: "Shaine Rosewel Matala"
+date: "`r Sys.Date()`"
+abstract: |
+  Working From Home (WFH) has become the trend for many industries especially after the pandemic. 
+number_sections: true
+fig_caption: yes
+output:
+  bookdown::pdf_document2:
+    keep_tex: true
+toc: false
+indent: true
+header-includes:
+- \usepackage{amsmath}
+- \numberwithin{equation}{section}
+- \numberwithin{figure}{section}
+- \numberwithin{table}{section}
+- \usepackage{setspace}\onehalfspacing
+- \usepackage{pdflscape}
+- \newcommand{\blandscape}{\begin{landscape}}
+- \newcommand{\elandscape}{\end{landscape}}
+- \usepackage{indentfirst}
+- \usepackage{xparse}
+- \usepackage{tcolorbox}
+- \usepackage{algorithm}
+- \usepackage{algpseudocode}
+- \usepackage{float}
+- \floatplacement{figure}{H}
+- \usepackage{placeins}
+- \renewcommand{\ttfamily}{\rmfamily}
+- \usepackage{etoolbox}
+- \usepackage{multirow}
+- \usepackage{makecell}
+- \usepackage{booktabs}
+- \AtBeginEnvironment{algorithmic}{\setstretch{1.5}} 
+- \renewcommand{\arraystretch}{0.75}
+- \renewcommand{\multirowsetup}{\raggedright}
+- \usepackage{anyfontsize}
+- \newcommand{\thesisfont}{\fontsize{12pt}{12pt}\selectfont}
+- \thesisfont
+- \usepackage{xcolor}
+# Combined hyperref into one clean call to avoid conflicts
+- \usepackage[colorlinks=true,linkcolor=blue,urlcolor=black,citecolor=black]{hyperref}
+- \usepackage{titlesec}
+- \titleformat{\section}{\fontsize{20pt}{22pt}\bfseries}{\thesection}{1em}{}
+- \titleformat{\subsection}{\fontsize{18pt}{20pt}\bfseries}{\thesubsection}{1em}{}
+- \titleformat{\subsubsection}{\fontsize{16pt}{19pt}\bfseries}{\thesubsubsection}{1em}{}
+- \usepackage{caption}
+- \captionsetup[figure]{font={large,bf}}
+- \captionsetup[table]{font={large,bf}}
+- \newcommand{\algfont}{\fontsize{15pt}{18pt}\selectfont}
+papersize: a4
+bibliography: child/references/references.bib
+nocite: | 
+  @*
+csl: child/references/apa-6th-edition.csl
+---
+
+
+
+```{r echo = FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  knitr.kable.NA = ''
+)
+```
+
+
+# Introduction {#sec:intro}
+
+
+```{r, child = "child/01_introduction.Rmd", echo = FALSE}
+
+```
+
+# Related Literature
+
+
+```{r, child = "child/02_rrl.Rmd", echo = FALSE}
+
+```
+
+# Methodology
+
+```{r, child = "child/03_methodology.Rmd"}
+
+```
+
+# Result
+
+```{r, child = "child/04_result.Rmd"}
+
+```
+
+# Conclusion
+
+```{r, child = "child/05_conclusion.Rmd"}
+
+```
+
+\clearpage
+\vspace*{1cm}
+\phantomsection
+
+# Bibliography {-}
+
+\vspace*{0.8cm}
+
+::: {#refs}
+:::
+  
+\clearpage
+\vspace*{1cm}
+
+\phantomsection 
+\appendix
+
+
+# Appendix {-}
+
+\vspace*{0.8cm}
+
+\setcounter{section}{0}
+\renewcommand{\thesection}{A}
+
+\setcounter{subsection}{0}
+\renewcommand{\thesubsection}{A.\arabic{subsection}}
+
+\numberwithin{table}{subsection}
+\numberwithin{figure}{subsection}
+
+```{r, child = "child/06_appendix.Rmd"}
+```
