@@ -1,9 +1,9 @@
 ---
-title: "Your Thesis Title Here"
+title: "Understanding Remote Work Preference Among Europe's Hybrid Workforce"
 author: "Shaine Rosewel Matala"
 date: "`r Sys.Date()`"
 abstract: |
-  Working From Home (WFH) has become the trend for many industries especially after the pandemic. 
+  This paper uses the survey conducted by @datasource to describe respondents from the working class of Europe in terms of their preference for remote over in-office work. In particular, we limit our study to those who reported "*sometimes working from a central place of work and sometimes remotely*", allowing them to compare their experience across setups. We aim to describe this preference based on their perception of remote work, commute to work, accessibility of basic needs institutions when working remotely, age, and work industry. Since the target variable has seven levels in its raw form and is ordinal in nature, we use a cumulative logits model. This may be beneficial for understanding the needs of workers, especially for employers and industries that commonly implement remote work settings.
 number_sections: true
 fig_caption: yes
 output:
@@ -43,9 +43,6 @@ header-includes:
 # Combined hyperref into one clean call to avoid conflicts
 - \usepackage[colorlinks=true,linkcolor=blue,urlcolor=black,citecolor=black]{hyperref}
 - \usepackage{titlesec}
-- \titleformat{\section}{\fontsize{20pt}{22pt}\bfseries}{\thesection}{1em}{}
-- \titleformat{\subsection}{\fontsize{18pt}{20pt}\bfseries}{\thesubsection}{1em}{}
-- \titleformat{\subsubsection}{\fontsize{16pt}{19pt}\bfseries}{\thesubsubsection}{1em}{}
 - \usepackage{caption}
 - \captionsetup[figure]{font={large,bf}}
 - \captionsetup[table]{font={large,bf}}
@@ -85,9 +82,7 @@ knitr::opts_chunk$set(
 
 # Methodology
 
-```{r, child = "child/03_methodology.Rmd"}
 
-```
 
 # Result
 
