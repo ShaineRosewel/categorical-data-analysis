@@ -1,0 +1,159 @@
+
+
+```{r}
+raw_dataset <- read.csv("data/RMAP_Data_Descriptor_Data.csv") %>% 
+  filter(Remote.Office.Work %in% c("I sometimes work from a central place of work and sometimes remotely"))
+```
+
+```{r}
+raw_dataset %>% filter(Please.rate.the.following.statements.regarding.remote.work.on.a.scale.from..1..strongly.disagree.to..7..strongly.agree.......It.is.important.for.me.to.have.the.flexibility.to.choose.my.work.location..=="")  #%>% group_by(Please.rate.the.following.statements.regarding.remote.work.on.a.scale.from..1..strongly.disagree.to..7..strongly.agree.......I.prefer.remote.work.over.in.office.work..) %>% count() %>% View()
+```
+
+```{r}
+fix_please_rate_questions <- function(raw_dataset) {
+  prefix <- "Please.rate.the.following.statements.regarding.remote.work.on.a.scale.from..1..strongly.disagree.to..7..strongly.agree"
+  
+  levels_text <- c(
+    "Strongly Disagree", "Disagree", "Somewhat Disagree", 
+    "Neither Agree nor Disagree", 
+    "Somewhat Agree", "Agree", "Strongly Agree"
+  )
+  
+  rating_qs_df <- raw_dataset %>%
+    dplyr::select(dplyr::starts_with(prefix)) %>%
+    dplyr::rename_with(~ {
+      names <- gsub(prefix, "", .x, fixed = TRUE)
+      gsub("^\\.+|\\.+$", "", names)
+    }) %>%
+    dplyr::mutate(dplyr::across(everything(), ~ {
+      # 1. Replace empty strings or whitespace with the neutral label
+      clean_x <- ifelse(.x == "" | is.na(.x), "Neither Agree nor Disagree", .x)
+      
+      # 2. Convert to ordered factor
+      val_as_factor <- factor(clean_x, levels = levels_text, ordered = TRUE)
+      
+      # 3. Convert to integer (Strongly Disagree = 1, Neither = 4, Strongly Agree = 7)
+      as.integer(val_as_factor)
+    }))
+  
+  print(colnames(rating_qs_df))
+  return(rating_qs_df)
+}
+
+
+fix_please_rate_questions(raw_dataset) 
+```
+
+
+
+```{r}
+fix_please_access_questions <- function(raw_dataset) {
+  prefix <- "When.working.remotely..do.you.currently.have.access.to.the.following.amenities.within.a.15.minute.walk..If.so..please.indicate.whether.they.are.important.to.you"
+
+  levels_text <- c(
+    "No, but it is not important",
+    "No, but it would be important",
+    "Yes, but it is not important",
+    "Yes, and it is important"
+  )
+  
+  rating_qs_df <- raw_dataset %>%
+    dplyr::select(dplyr::starts_with(prefix)) %>%
+    dplyr::rename_with(~ {
+      names <- gsub(prefix, "", .x, fixed = TRUE)
+      gsub("^\\.+|\\.+$", "", names)
+    }) %>%
+    dplyr::mutate(dplyr::across(everything(), ~ {
+      val_as_factor <- factor(.x, levels = levels_text, ordered = TRUE)
+      # as.integer(val_as_factor)
+    }))
+  
+  print(colnames(rating_qs_df))
+  return(rating_qs_df)
+}
+
+fix_please_access_questions(raw_dataset)
+```
+
+```{r}
+# rows_with_nas <- fix_please_access_questions(raw_dataset) %>%
+#   dplyr::filter(dplyr::if_any(everything(), is.na))
+```
+
+
+
+```{r}
+cleaned_df <- fix_please_access_questions(raw_dataset)
+
+long_df <- cleaned_df %>% 
+  tidyr::pivot_longer(
+    cols = dplyr::everything(),
+    names_to = "needs", 
+    values_to = "response"     
+  )
+
+long_df %>% group_by(needs) %>% count(response)
+```
+
+
+
+```{r}
+fix_please_travel_questions <- function(raw_dataset) {
+  prefix <- "How.do.you.usually.commute.to.work..please.pick.all.that.apply"
+
+  levels_text <- c(
+    "No",
+    "Yes"
+  )
+  
+  rating_qs_df <- raw_dataset %>%
+    dplyr::select(dplyr::starts_with(prefix)) %>%
+    dplyr::rename_with(~ {
+      names <- gsub(prefix, "", .x, fixed = TRUE)
+      gsub("^\\.+|\\.+$", "", names)
+    }) %>%
+    dplyr::mutate(dplyr::across(everything(), ~ {
+      val_as_factor <- factor(.x, levels = levels_text, ordered = TRUE)
+      # as.integer(val_as_factor)
+    }))
+  
+  print(colnames(rating_qs_df))
+  return(rating_qs_df)
+}
+
+fix_please_travel_questions(raw_dataset) #%>%dplyr::filter(dplyr::if_any(everything(), is.na))
+```
+
+
+```{r}
+# continuous
+
+On.average..what.amount.of.time.of.your.weekly.work.schedule.do.you.perform.remotely..in.the.office.......Remotely...Hours.
+On.average..what.amount.of.time.of.your.weekly.work.schedule.do.you.perform.remotely..in.the.office.......In.the.Office..Hours.
+```
+
+```{r}
+# categ
+When.working.remotely..where.do.you.prefer.to.work.from
+Did.you.change.your.geographic.place.of.work.since.2020
+What.do.you.prefer.when.working.at.a.third.place.or.a.coworking.space...Availability.of.car.parking..
+```
+
+```{r}
+raw_dataset %>% 
+  dplyr::select(starts_with("What.do.you.prefer.when.working.at.a.third.place.or.a.coworking.space"))
+```
+
+
+```{r}
+raw_dataset %>% 
+  dplyr::select(-c(Start.language,
+                   Would.you.like.to.select.a.different.language.,
+                   Date.submitted)) %>%
+  pull(How.do.you.usually.commute.to.work..please.pick.all.that.apply....Bicycle.)%>% unique()
+```
+
+```{r}
+raw_dataset %>% pull(Remote.Office.Work) %>% unique()
+```
+
