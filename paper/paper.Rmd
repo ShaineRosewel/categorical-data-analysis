@@ -1,9 +1,9 @@
 ---
-title: "Understanding Remote Work Preference Among Europe's Hybrid Workforce"
+title: "Modeling Workers' Return-to-Office Decisions in Australia"
 author: "Shaine Rosewel Matala"
 date: "`r Sys.Date()`"
 abstract: |
-  This paper uses the survey conducted by @datasource to describe respondents from the working class of Europe in terms of their preference for remote over in-office work. In particular, we limit our study to those who reported "*sometimes working from a central place of work and sometimes remotely*", allowing them to compare their experience across setups. We aim to describe this preference based on their perception of remote work, commute to work, accessibility of basic needs institutions when working remotely, age, and work industry. Since the target variable has seven levels in its raw form and is ordinal in nature, we use a cumulative logits model. This may be beneficial for understanding the needs of workers, especially for employers and industries that commonly implement remote work settings.
+  This paper uses the Global Survey of Working Arrangements (G-SWA, 2022) to describe respondents from the working class of Australia based on the decision they would take if their employer announced that all employees must return to the worksite 5+ days a week by a certain date. The response signals a preference for either a hybrid/WFH or 100% in-office work setting. We aim to describe this decision based on their immediate environment's perception of remote work, commute time, gender, age, whether they have children, industry, and other factors. We consider a generalized linear model with an identity or logistic link. This may be beneficial for employers and the government in understanding workers' needs and potentially informing regulations.
 number_sections: true
 fig_caption: yes
 output:
@@ -54,8 +54,6 @@ nocite: |
 csl: child/references/apa-6th-edition.csl
 ---
 
-
-
 ```{r echo = FALSE}
 knitr::opts_chunk$set(
   echo    = FALSE,
@@ -100,7 +98,7 @@ knitr::opts_chunk$set(
 \vspace*{1cm}
 \phantomsection
 
-# Bibliography {-}
+# References {-}
 
 \vspace*{0.8cm}
 
