@@ -1,18 +1,12 @@
-## What paved the way for remote work.
+## Determinants of remote work feasibility and adoption
 
-## What is remote work
+(includes industry, occupation, job type, managerial role, etc.)
 
-- work from home
-- work from averywhere else
+## Trade-offs between remote and in-office work
 
-## Industries that commonly implement remote work.
+(pros/cons, productivity, flexibility, isolation, commute cost, etc.)
 
-## Advantages and disadvantages of remote work and in-office work
+## Determinants of work arrangement preference
 
-Age, remote work setting, office setting
+(age, gender, children, commute time, perceptions, etc.)
 
-### Why employees prefer in-office work
-
-### Why employees prefer remote work
-
-## Policies in place in support of remote work
