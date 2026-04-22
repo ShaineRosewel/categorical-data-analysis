@@ -1,0 +1,15 @@
+Working from home is a formal arrangement where employees perform duties without daily physical attendance at the office, instead doing so remotely from a place of work such as the home or a café, at conventional hours or flexibly at other times, enabled by information and communication technologies (@vij-2023). The COVID-19 pandemic in 2020 paved the way for a significant Work from Home (WfH) uptake across Australia. The @dit-2022 defines WfH uptake as the "proportion of job tasks and activities that were done remotely at a given point in time" (p. 7).
+
+In late 2020 and early 2021, few employers believed that the hybrid model would be sustained beyond 2021, and some strongly rejected WfH as a long-term strategy. At the same time, others recognized the need to adapt in terms of flexibility, while some viewed hybrid arrangements as appropriate only for certain roles. Managerial employees, on the other hand, were generally more supportive of company policies allowing WfH in the long term (@dit-2022). These differing perspectives may translate into varying workplace policies, including mandates to return to the office. However, there is limited understanding of how workers immediately respond to strict return-to-office mandates, particularly in terms of their decision to comply or seek alternative work arrangements.
+
+## Objectives
+
+This study examines the immediate decision of workers when faced with a mandate to return to the worksite 5+ days a week. In particular, it considers whether workers prefer to remain in a WfH arrangement (e.g., seeking a job that allows remote work or leaving their current job) or to return fully to in-office work (i.e., complying with the mandate). It further aims to understand the factors associated with this decision, including perception of remote work, commute time, gender, age, presence of children, and industry.
+
+## Significance
+
+This study may be beneficial for employers and policymakers in understanding how workers respond to strict return-to-office mandates. The findings may help inform workplace policies and labor regulations, particularly in balancing organizational requirements with worker preferences and constraints.
+
+## Scope and Limitation
+
+This study is based on the Global Survey of Working Arrangements (G-SWA, 2022) and focuses on working-class respondents in Australia. It is limited to individuals presented with a hypothetical return-to-office mandate and does not account for actual enforced policy outcomes.
