@@ -80,7 +80,9 @@ knitr::opts_chunk$set(
 
 # Methodology
 
+```{r, child = "child/03_methodology.Rmd", echo = FALSE}
 
+```
 
 # Result
 
