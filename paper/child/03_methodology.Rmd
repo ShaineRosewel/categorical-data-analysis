@@ -1,12 +1,6 @@
 ## Data source
 
 ```{r}
-library(dplyr)
-library(tidyr)
-```
-
-
-```{r}
 raw <- read.csv("data/Replication file/Data/G-SWA.csv") %>% 
   filter(country == 'Australia 2') %>% 
   dplyr::select(c(regionname,
@@ -24,25 +18,315 @@ raw <- read.csv("data/Replication file/Data/G-SWA.csv") %>%
                   ever_WFH,
                   return_office
                   )) %>%
-  dplyr::select(-c(daysemployer_work_home)) %>%
-  mutate(decision = ifelse(return_office == 'Comply and return to worksite', 1, 0))
+  # dplyr::select(-c(daysemployer_work_home)) %>%
+  mutate(decision = ifelse(return_office == 'Comply and return to worksite', 1, 0)) %>%
+ # mutate(employee_favored_agreement = daysemployee_work_home - daysemployer_work_home) %>%
+  dplyr::select(-c(daysemployer_work_home,return_office)) %>%
+  mutate(ever_WFH = ifelse(100, 1, 0))
+
+# raw[apply(raw, 1, function(x) any(is.na(x) | x == "")), ]
+```
+
+```{r}
+n <- dim(raw)[1]
 ```
 
 
-```{r include = FALSE, eval = FALSE}
-raw %>% pull(ever_WFH) %>% table()# %>% 
-  #filter(if_any(everything(), is.na))# %>% pull(return_office) #%>% table()
+
+
+This study uses the Global Survey of Working Arrangements (G-SWA, 2022) dataset. The G-SWA is a survey of individual workers across more than two dozen countries done occasionally. It collects data on outcomes, plans, desires and perceptions related to WfH along with the respondents' demographics, earnings, commute times, and more (@datasource-2022). We focus on the working class of Australia who primarily WfH and use the wave 2 phase of data collection. The total sample size is `r n`. The variables used in the analysis are defined as follows:
+
+### Target variable: `decision`
+
+`decision` is a binary variable. This is derived from `return_office` which pertains to the response if employer announces that employees must return to the worksite 5+ days per week. `return_office` could be one of the three options: `Look for a job to WFH 1-2 days`, `Comply and return to worksite`, `Quit job`. For this study, we collapse `Look for a job to WFH 1-2 days` and `Quit job` to obtain the `decision` variable which is 1 if response is `Comply and return to worksite` and 0 otherwise.
+
+```{r}
+target_var_tab <- raw %>% 
+  dplyr::count(decision) %>%
+  mutate(prop = round(n/sum(n), 4))
+
+target_var_tab %>% kable("latex", 
+        booktabs = TRUE,
+         escape = TRUE,
+        linesep = "",
+        row.names = FALSE,
+        na.character = "") %>%
+    kable_styling(latex_options = "HOLD_position", 
+                  position = "center", 
+                  full_width = FALSE) 
 ```
 
 
-```{r include = FALSE, eval = FALSE}
-raw$with_kids
+### Explanatory variables
+
+`regionname`
+
+```{r}
+target_var_tab <- raw %>% 
+  group_by(regionname) %>%
+  dplyr::count(decision) #%>%
+  #mutate(prop = round(n/sum(n), 4))
+
+target_var_tab %>% 
+  pivot_wider(names_from = decision, values_from = n) %>%
+  mutate(total = `0`+`1`) %>% kable("latex", 
+        booktabs = TRUE,
+         escape = TRUE,
+        linesep = "",
+        row.names = FALSE,
+        na.character = "") %>%
+    kable_styling(latex_options = "HOLD_position", 
+                  position = "center", 
+                  full_width = FALSE) 
+```
+
+`gender`
+
+```{r}
+target_var_tab <- raw %>% 
+  group_by(gender) %>%
+  dplyr::count(decision) #%>%
+  #mutate(prop = round(n/sum(n), 4))
+
+target_var_tab %>% 
+  pivot_wider(names_from = decision, values_from = n) %>%
+  mutate(total = sum(`0`,`1`, na.rm=TRUE)) %>% kable("latex", 
+        booktabs = TRUE,
+         escape = TRUE,
+        linesep = "",
+        row.names = FALSE,
+        na.character = "") %>%
+    kable_styling(latex_options = "HOLD_position", 
+                  position = "center", 
+                  full_width = FALSE) 
+#kable_format
+```
+
+`age`
+
+```{r fig.height=3}
+library(ggplot2)
+target_var_tab <- raw %>% 
+  group_by(age) %>%
+  dplyr::count(decision) #%>%
+  #mutate(prop = round(n/sum(n), 4))
+
+# raw %>%
+#   ggplot(aes(x = age, fill = factor(decision))) +
+#   geom_histogram(position = "identity", alpha = 0.5) + theme_bw()
+
+raw %>% 
+  ggplot(aes(x = age, color = factor(decision))) + 
+  geom_density()  + theme_bw()
+```
+
+`education`
+
+```{r}
+target_var_tab <- raw %>% 
+  group_by(education) %>%
+  dplyr::count(decision) #%>%
+  #mutate(prop = round(n/sum(n), 4))
+
+target_var_tab %>% 
+  pivot_wider(names_from = decision, values_from = n) %>%
+  mutate(total = sum(`0`,`1`, na.rm=TRUE)) %>% kable("latex", 
+        booktabs = TRUE,
+         escape = TRUE,
+        linesep = "",
+        row.names = FALSE,
+        na.character = "") %>%
+    kable_styling(latex_options = "HOLD_position", 
+                  position = "center", 
+                  full_width = FALSE) 
+```
+
+`industry_job`
+
+```{r}
+target_var_tab <- raw %>% 
+  group_by(industry_job) %>%
+  dplyr::count(decision) #%>%
+  #mutate(prop = round(n/sum(n), 4))
+
+target_var_tab %>% 
+  pivot_wider(names_from = decision, values_from = n) %>%
+  rename_with(~ gsub("_", " ", .)) %>%
+  mutate(total = sum(`0`,`1`, na.rm=TRUE)) %>% kable("latex", 
+        booktabs = TRUE,
+         escape = TRUE,
+        # col.names = c("industry\\_job", "0", "1", "total"),
+        linesep = "",
+        row.names = FALSE,
+        na.character = "") %>%
+    kable_styling(latex_options = "HOLD_position", 
+                  position = "center", 
+                  full_width = FALSE) 
+```
+
+`married`
+
+```{r}
+target_var_tab <- raw %>% 
+  group_by(married) %>%
+  dplyr::count(decision) #%>%
+  #mutate(prop = round(n/sum(n), 4))
+
+target_var_tab %>% 
+  pivot_wider(names_from = decision, values_from = n) %>%
+  mutate(total = sum(`0`,`1`, na.rm=TRUE)) %>% kable("latex", 
+        booktabs = TRUE,
+         escape = TRUE,
+        linesep = "",
+        row.names = FALSE,
+        na.character = "") %>%
+    kable_styling(latex_options = "HOLD_position", 
+                  position = "center", 
+                  full_width = FALSE) 
+```
+
+`with_kids`
+
+```{r}
+target_var_tab <- raw %>% 
+  group_by(with_kids) %>%
+  dplyr::count(decision) #%>%
+  #mutate(prop = round(n/sum(n), 4))
+
+target_var_tab %>% 
+  pivot_wider(names_from = decision, values_from = n) %>%
+  rename_with(~ gsub("_", " ", .)) %>%
+  mutate(total = sum(`0`,`1`, na.rm=TRUE)) %>% kable("latex", 
+        booktabs = TRUE,
+         escape = TRUE,
+        linesep = "",
+        # col.names = c("with\\_kids", "0", "1", "total"),
+        row.names = FALSE,
+        na.character = "") %>%
+    kable_styling(latex_options = "HOLD_position", 
+                  position = "center", 
+                  full_width = FALSE) 
+```
+`daysemployee_work_home`
+
+```{r}
+target_var_tab <- raw %>% 
+  group_by(daysemployee_work_home) %>%
+  dplyr::count(decision) #%>%
+  #mutate(prop = round(n/sum(n), 4))
+library(kableExtra)
+target_var_tab %>% 
+  pivot_wider(names_from = decision, values_from = n) %>%
+  rename_with(~ gsub("_", " ", .)) %>%
+  mutate(total = sum(`0`,`1`, na.rm=TRUE)) %>% 
+  kable("latex", 
+    booktabs = TRUE,
+     escape = TRUE,
+    linesep = "",
+    # col.names = c("daysemployee\\_work\\_home", "0", "1", "total"),
+    row.names = FALSE,
+    na.character = "") %>%
+    kable_styling(latex_options = "HOLD_position",
+                  position = "center",
+                  full_width = FALSE)
+```
+
+`value_WFH_rawpercent25`
+
+```{r}
+target_var_tab <- raw %>% 
+  group_by(value_WFH_rawpercent25) %>%
+  dplyr::count(decision) #%>%
+  #mutate(prop = round(n/sum(n), 4))
+
+target_var_tab %>% 
+  rename_with(~ gsub("_", " ", .)) %>%         # Replace underscores with spaces
+  pivot_wider(names_from = decision, values_from = n) %>%
+  mutate(total = sum(`0`,`1`, na.rm=TRUE)) %>% kable("latex", 
+        booktabs = TRUE,
+         escape = TRUE,
+        linesep = "",
+        # col.names = c("value\\_WFH\\_rawpercent25", "0", "1", "total"),
+        row.names = FALSE,
+        na.character = "") %>%
+    kable_styling(latex_options = "HOLD_position", 
+                  position = "center", 
+                  full_width = FALSE) 
+```
+
+`commuting_time`
+
+```{r fig.height=3}
+target_var_tab <- raw %>% 
+  group_by(commuting_time) %>%
+  dplyr::count(decision) #%>%
+  #mutate(prop = round(n/sum(n), 4))
+
+# raw %>%
+#   ggplot(aes(x = commuting_time, fill = factor(decision))) +
+#   geom_histogram(position = "identity", alpha = 0.5) + theme_bw()
+
+raw %>% 
+  ggplot(aes(x = commuting_time, color = factor(decision))) + 
+  geom_density()  + theme_bw()
+```
+
+`WFHperceptions`
+
+```{r fig.height=3}
+target_var_tab <- raw %>% 
+  group_by(WFHperceptions) %>%
+  dplyr::count(decision) #%>%
+  #mutate(prop = round(n/sum(n), 4))
+library(kableExtra)
+target_var_tab %>% 
+  pivot_wider(names_from = decision, values_from = n) %>%
+  rename_with(~ gsub("_", " ", .)) %>%
+  mutate(total = sum(`0`,`1`, na.rm=TRUE)) %>% 
+  kable("latex", 
+    booktabs = TRUE,
+     escape = TRUE,
+    linesep = "",
+    # col.names = c("daysemployee\\_work\\_home", "0", "1", "total"),
+    row.names = FALSE,
+    na.character = "") %>%
+    kable_styling(latex_options = "HOLD_position",
+                  position = "center",
+                  full_width = FALSE)
 ```
 
 
-```{r include = FALSE}
-raw %>% group_by(decision) %>% summarise(mean(with_kids, na.rm = TRUE))
+`ever_WFH`
+
+```{r fig.height=3}
+target_var_tab <- raw %>% 
+  group_by(ever_WFH) %>%
+  dplyr::count(decision) #%>%
+  #mutate(prop = round(n/sum(n), 4))
+library(kableExtra)
+target_var_tab %>% 
+  pivot_wider(names_from = decision, values_from = n) %>%
+  rename_with(~ gsub("_", " ", .)) %>%
+  mutate(total = sum(`0`,`1`, na.rm=TRUE)) %>% 
+  kable("latex", 
+    booktabs = TRUE,
+     escape = TRUE,
+    linesep = "",
+    # col.names = c("daysemployee\\_work\\_home", "0", "1", "total"),
+    row.names = FALSE,
+    na.character = "") %>%
+    kable_styling(latex_options = "HOLD_position",
+                  position = "center",
+                  full_width = FALSE)
 ```
+
+
+## Model specification
+
+We want to consider a starting binary logistic regression model with all enumerated variables as main effects and interaction on the following variables: `gender` and `education`, `gender` and `industry_job`, `with_kids` and `gender`. We then implement stepwise regression and a series of likelihood ratio tests to come up with the final model. In the event of poor performance, we can 
+
+
+
 
 
 ```{r include = FALSE, eval = FALSE}
