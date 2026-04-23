@@ -1,4 +1,4 @@
-# Data source
+## Data source
 
 ```{r}
 library(dplyr)
@@ -30,7 +30,7 @@ raw <- read.csv("data/Replication file/Data/G-SWA.csv") %>%
 
 
 ```{r include = FALSE, eval = FALSE}
-raw %>% pull(return_office) %>% table()# %>% 
+raw %>% pull(ever_WFH) %>% table()# %>% 
   #filter(if_any(everything(), is.na))# %>% pull(return_office) #%>% table()
 ```
 

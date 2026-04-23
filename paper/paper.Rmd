@@ -11,6 +11,11 @@ output:
     keep_tex: true
 toc: false
 indent: true
+colorlinks: true
+linkcolor: blue
+urlcolor: blue
+citecolor: blue
+link-citations: true
 header-includes:
 - \usepackage{amsmath}
 - \numberwithin{equation}{section}
@@ -41,7 +46,6 @@ header-includes:
 - \thesisfont
 - \usepackage{xcolor}
 # Combined hyperref into one clean call to avoid conflicts
-- \usepackage[colorlinks=true,linkcolor=blue,urlcolor=black,citecolor=black]{hyperref}
 - \usepackage{titlesec}
 - \usepackage{caption}
 - \captionsetup[figure]{font={large,bf}}
