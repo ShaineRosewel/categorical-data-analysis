@@ -6,6 +6,7 @@ output:
     widescreen: true
     smaller: true
     transition: faster
+    toc: true
 ---
 
 <style>
@@ -55,11 +56,17 @@ library(caret)
 library(knitr)
 ```
 
+## Outline
+
+- GLM Limitations  
+- Random Effects Model
+- Example
+
 # GLM Limitations
 
 ## GLM
 
-- Requires independent samples
+- Assumes independent observations
 
 ## Repeated measures {.build}
 
@@ -146,7 +153,7 @@ dist <- Contraception %>%
 
 ## GLM
 
-- Requires independent samples
+- Assumes independent observations
 - Observations within clusters are usually positively correlated, tending to be more alike than observations from different clusters.  
 - Ordinary analyses that ignore the correlation and treat within-cluster observations the same as between-cluster observations produce invalid standard errors, tending to be too small for between-cluster effect estimates and too large for within-cluster effects.
 - Solution: add cluster-level terms to the model that take the same value for each observation in a cluster. They are unobserved and when treated as varying randomly among clusters, they are called random effects.
@@ -165,7 +172,7 @@ dist <- Contraception %>%
 
 ## Definitions {.build}
 
-- **Fixed effects** are parameters that describe a factor's effects in an ordinary GLM. They apply to all categories of interest, such as gender, treatment, or age groupings. ss
+- **Fixed effects** are parameters that describe a factor's effects in an ordinary GLM. They apply to all categories of interest, such as gender, treatment, or age groupings.
 - **Random effects** usually apply to a sample. For a study that makes repeated observations on a sample of subjects, the model treats observations from a given subject as a cluster, and it has a random effect for each of the subject.
 - GLMs extend ordinary regression by allowing nonnormal responses and a link function of the mean. The GLMM is a further extension that permits random effects as well as fixed effects in a linear predictor.
 
@@ -280,132 +287,21 @@ g(\mu_{I2}) \\
 $$
 
 - Link(Average outcome) = General trend (Fixed) + Cluster deviation (Random)
-- $\alpha$ and $\beta$ are the fixed effects while $u_1$ and $u_2$ are the random effects
+- $\alpha$ and $\beta$ are the fixed effects while $u_1$ and $u_2$ are the random effects realization.
 - If $Y_{it} \mid u_i \sim \text{Bernoulli}(\mu_{it})$, $g = \text{logit}$, and $x_{it}$ indicates whether treatment is administered or not, we have a logistic GLMM with random intercept for binary matched pairs.
   - an extension allows $T > 2$ observations in each cluster. The random intercept model has form below and early applications were in psychometrics (item response models).
   
   $$
   \text{logit}[P(Y_{it}=1 \mid u_i)] = \alpha + \beta_t + u_i
   $$
-  
     - The item-response model with random intercept is a special case of an important class of random effects model for binary data called logistic-normal models for binary data with the form
     
     $$
     \text{logit}[P(Y_{it}=1 \mid u_i)] = \mathbf{x}^T_{it} \boldsymbol{\beta}+ u_i
     $$
 
-## GLMM - Random Slope {.build .scrollable-slide}
 
-Let $I = 2$, $T = 2$, and $\boldsymbol{\beta} = \begin{bmatrix} \alpha \\ \beta\end{bmatrix}$.
-
-For a single observation $(i, t)$, the formula is
-
-$$
-g(\mu_{it}) = \mathbf{x}^T_{it}\boldsymbol{\beta} + \mathbf{z}_{it}^T u_i
-$$
-
-If $u_i$ is a **random slope** for the covariate $x_{it}$, then:
-
-$$
-\begin{aligned}
-\begin{bmatrix} 
-g(\mu_{11}) \\ 
-g(\mu_{12}) \\ 
-g(\mu_{21}) \\ 
-g(\mu_{22}) \\ 
-\end{bmatrix} &= 
-\begin{bmatrix} 
-1 & x_{11} \\ 
-1 & x_{12} \\ 
-1 & x_{21} \\ 
-1 & x_{22} \\ 
-\end{bmatrix}
-\begin{bmatrix} \alpha \\ \beta\end{bmatrix}
-+ 
-\begin{bmatrix} 
-x_{11} & 0 \\ 
-x_{12} & 0 \\ 
-0 & x_{21} \\ 
-0 & x_{22} \\ 
-\end{bmatrix}
-\begin{bmatrix} u_1 \\ u_2\end{bmatrix} \\
-\\
-\begin{bmatrix} 
-g(\mu_{11}) \\ 
-g(\mu_{12}) \\ 
-g(\mu_{21}) \\ 
-g(\mu_{22}) \\ 
-\end{bmatrix}
-&=
-\begin{bmatrix} 
-\alpha + x_{11}(\beta + u_1) \\ 
-\alpha + x_{12}(\beta + u_1) \\ 
-\alpha + x_{21}(\beta + u_2) \\ 
-\alpha + x_{22}(\beta + u_2) \\ 
-\end{bmatrix}
-\end{aligned}
-$$
-
-- The term $(\beta + u_i)$ represents the cluster-specific slope.
-- $\alpha$ and $\beta$ are the fixed effects while $u_1$ and $u_2$ are the random slope deviations.
-
-## GLMM - Random Intercept & Slope {.build .scrollable-slide}
-
-Let $I = 2$, $T = 2$, and $\boldsymbol{\beta} = \begin{bmatrix} \alpha \\ \beta\end{bmatrix}$. 
-
-Now, $\mathbf{u}_i = \begin{bmatrix} u_{0i} \\ u_{1i} \end{bmatrix}$ is a **vector** (bivariate) containing a random intercept and a random slope.
-
-- $\mathbf{z}_{it}^T = [1, x_{it}]$
-
-$$
-\begin{aligned}
-\begin{bmatrix} 
-g(\mu_{11}) \\ 
-g(\mu_{12}) \\ 
-g(\mu_{21}) \\ 
-g(\mu_{22}) \\ 
-\end{bmatrix} &= 
-\begin{bmatrix} 
-1 & x_{11} \\ 
-1 & x_{12} \\ 
-1 & x_{21} \\ 
-1 & x_{22} \\ 
-\end{bmatrix}
-\begin{bmatrix} \alpha \\ \beta\end{bmatrix}
-+ 
-\begin{bmatrix} 
-1 & x_{11} & 0 & 0 \\ 
-1 & x_{12} & 0 & 0 \\ 
-0 & 0 & 1 & x_{21} \\ 
-0 & 0 & 1 & x_{22} \\ 
-\end{bmatrix}
-\begin{bmatrix} u_{01} \\ u_{11} \\ u_{02} \\ u_{12} \end{bmatrix} \\
-\\
-\begin{bmatrix} 
-g(\mu_{11}) \\ 
-g(\mu_{12}) \\ 
-g(\mu_{21}) \\ 
-g(\mu_{22}) \\ 
-\end{bmatrix}
-&=
-\begin{bmatrix} 
-(\alpha + u_{01}) + x_{11}(\beta + u_{11}) \\ 
-(\alpha + u_{01}) + x_{12}(\beta + u_{11}) \\ 
-(\alpha + u_{02}) + x_{21}(\beta + u_{12}) \\ 
-(\alpha + u_{02}) + x_{22}(\beta + u_{12}) \\ 
-\end{bmatrix}
-\end{aligned}
-$$
-
-- **Fixed Part:** $\alpha$ (intercept) and $\beta$ (slope).
-- **Random Part:** $u_{0i}$ (intercept deviation) and $u_{1i}$ (slope deviation) for each cluster $i$.
-- $\mathbf{Z}$ is now a **block-diagonal matrix** where each block is the $\mathbf{z}_{it}$ values for that cluster.
-
-
-
-
-
-## Heterogeneity in Logistic-Normal models
+## Heterogeneity in Logistic-Normal models {.build .scrollable-slide}
 
 
 Take 2 observations from different clusters. Let them be $(x_{it}, y_{it})$ and $(x_{hs}, y_{hs})$. We look at their difference in log-odds.
@@ -449,21 +345,18 @@ If $\sigma > 0$, $(\mathbf{x}_{it}  - \mathbf{x}_{hs})^T \boldsymbol{\beta} + (u
 
 Suppose we use the logit link:
 
-GLM (marginal model)
+GLM
 
 $$
 \text{logit}[P(Y_{it}=1)] = \mathbf{x}^T_{it} \boldsymbol{\beta}
 $$
 
-GLMM (conditional on random effects); $u_i \sim \mathcal{N}(0,\sigma^2)$
+GLMM; $u_i \sim \mathcal{N}(0,\sigma^2)$
 
 $$
 \text{logit}[P(Y_{it}=1 \mid u_i)] = \mathbf{x}^T_{it} \boldsymbol{\beta}+ u_i
 $$
 
-\smallskip
-\small
-Note: The marginal probability $P(Y_{it}=1)$ in GLMM has no closed form.
 
 ## Random effects: unmeasured predictors {.build}
 
@@ -501,25 +394,18 @@ $$
 
 ## Random effects: explaining overdispersion {.build}
 
-Random effects also provide a mechanism for explaining overdispersion in basic models not having those effects.
+Overdispersion occurs when the model underestimates the variance in the outcome; it has the ff implications  
 
-- GLM Poisson
+- standard errors that are too small  
+- p-values biased towards significance  
+- CI too narrow  
 
-$$
-Var(Y) = \mu
-$$
+Potential sources of overdispersion: 
 
-- GLM Negative Binomial
+- observations are not independent  
+- external factors influencing the outcome, not included in the model  
 
-$$
-Var(Y) = \mu + \phi \mu^2, \qquad \phi > 0
-$$
-
-- GLMM
-
-$$
-Var(Y) = \mu + \mu^2 (\exp ( \sigma^2 ) - 1)
-$$
+Random effects provide a mechanism for explaining overdispersion in basic models not having those effects.
 
 
 # Example
@@ -529,7 +415,11 @@ $$
 ```{r}
 library(mlmRev)
 data(Contraception)
-head(Contraception)
+
+datatable(Contraception, options = list(pageLength = 9,
+                                      #searching = FALSE, 
+                                      lengthChange = FALSE, 
+                                      dom = 't'))
 ```
 
 ## Fit a GLM {.build .scrollable-slide}
@@ -561,7 +451,12 @@ model_glmm0 <- glmer(use ~ age + urban + livch + (1 | district),
 summary(model_glmm0)
 ```
 
-## Comparison {.build .scrollable-slide}
+
+```{r echo = TRUE}
+ranef(model_glmm0)
+```
+
+## Visualize the characteristic curve
 
 ```{r fig.height = 5, fig.width = 7}
 long_age_range <- seq(-250, 250, length.out = 1201)
@@ -651,6 +546,8 @@ Contraception %>%
   theme_bw()
 ```
 
+### Fit a GLMM
+
 ```{r echo = TRUE}
 model_glmm1 <- glmer(use ~ age + urban + livch + (1 | fake_district), 
                     family = binomial, 
@@ -662,6 +559,16 @@ model_glmm1 <- glmer(use ~ age + urban + livch + (1 | fake_district),
 summary(model_glmm1)
 ```
 
+```{r echo = TRUE}
+ranef(model_glmm1)
+```
+
+
+### Visualize the characteristic curve
+
+Note that the GLM characteristic curve and the three curves corresponding to the 3 fake districts overlap.
+
+When there is no between-cluster variability ($\sigma^2 =0$), the GLMM reduces to a GLM.
 
 ```{r fig.height = 5, fig.width = 7}
 grid_long <- expand.grid(age = long_age_range, 
@@ -695,415 +602,110 @@ ggplot(grid_long, aes(x = age)) +
 
 
 
-$$
-\begin{aligned}
-\text{logit}\big(P(\text{use}=1 \mid u_j)\big) &= (\beta_0 + u_j) + \beta_1 \,\text{age} + \beta_2 \,\text{urban} + \beta_3 \,\text{livch}
-\\
-\text{log} \frac{\big(P(\text{use}=1 \mid u_j)\big)}{1-\big(P(\text{use}=1 \mid u_j)\big)} &= (\beta_0 + u_j) + \beta_1 \,\text{age} + \beta_2 \,\text{urban} + \beta_3 \,\text{livch} 
-\\
-\frac{\big(P(\text{use}=1 \mid u_j)\big)}{1-\big(P(\text{use}=1 \mid u_j)\big)} &= \exp \left[ (\beta_0 + u_j) + \beta_1 \,\text{age} + \beta_2 \,\text{urban} + \beta_3 \,\text{livch} \right]
-\\
-&= \exp (\beta_0 + u_j) \times \exp (\beta_1 \,\text{age} + \beta_1) \times \exp (\beta_2 \,\text{urban}) \times \exp (\beta_3 \,\text{livch})
-\\
-&= \exp (\beta_0 + u_j) \times \exp (\beta_1 \,\text{age}) \times \exp(\beta_1) \times \exp (\beta_2 \,\text{urban}) \times \exp (\beta_3 \,\text{livch})
-\end{aligned}
-$$
 
+# Appendix
 
-```{r}
-summary(model_glm)
-```
+## GLMM - Random Slope {.build .scrollable-slide}
 
+Let $I = 2$, $T = 2$, and $\boldsymbol{\beta} = \begin{bmatrix} \alpha \\ \beta\end{bmatrix}$.
 
-```{r}
-summary(model_glmm0)
-```
-
-The model includes a district-level random intercept, indicating that baseline contraceptive use varies across districts. Districts with higher random intercepts have higher baseline probabilities of use, after adjusting for individual-level covariates.
-
-```{r}
-# ranef(model_glmm0)$district %>% arrange(`(Intercept)`)
-```
-
-```{r}
-summary(model_glmm1)
-```
-
-```{r}
-# set.seed(71123)
-set.seed(658) # still diff
-set.seed(7)
-Contraception <- Contraception[sample(nrow(Contraception)), ]
-Contraception$fake_district <- c(rep(1, 645), rep(2, 645), rep(3, 644))
-
-
-
-# AIC(model_glm, model_glmm)
-# ranef(model_glmm)
-```
-
-
-```{r}
-unique(Contraception$livch)
-```
-
-```{r}
-
-```
-
-
-
-```{r}
-library(dplyr)
-
-Contraception <- Contraception %>%
-  group_by(district) %>%
-  mutate(
-    age_mean = mean(age),
-    age_within = age - age_mean
-  ) %>%
-  ungroup()
-```
-
-```{r}
-# GLM (ignores clustering)
-glm_fit <- glm(use ~ age_mean + age_within + urban + livch,
-               family = binomial, data = Contraception)
-
-# GLMM (accounts for clustering)
-library(lme4)
-glmer_fit <- glmer(use ~ age_mean + age_within + urban + livch + (1 | district),
-                   family = binomial, data = Contraception)
-```
-
-```{r}
-summary(glm_fit)
-```
-```{r}
-summary(glmer_fit)
-```
-
-
-
-
-
-
-
-
-```{r}
-model_glm  <- glm(outcome ~ severity + drug + time + drug:time , family = binomial, data = depression_data)
-
-model_glmm <- glmer(outcome ~ severity + drug + time + drug:time + (1 | case), family = binomial, data = depression_data)
-```
-
-
-
-# Appendixs
-
-
-## Logistic-Normal GLMM {.build .scrollable-slide .hidden-slide} 
-
-Let $I = 2$, $T = 2$, and $\boldsymbol{\beta} = \begin{bmatrix} \alpha \\ \beta\end{bmatrix}$. 
-Assume $y_{it} \sim \text{Bernoulli}(\pi_{it})$.
-
-For a single observation $(i, t)$, the model reduces to:
+For a single observation $(i, t)$, the formula is
 
 $$
-\text{logit}(\pi_{it}) = \alpha + \beta x_{it} + u_i
+g(\mu_{it}) = \mathbf{x}^T_{it}\boldsymbol{\beta} + \mathbf{z}_{it}^T u_i
 $$
 
-where $u_i \stackrel{iid}{\sim} N(0, \sigma^2)$.
-
-- **Link Function**: $g(\mu_{it}) = \log\left(\frac{\pi_{it}}{1 - \pi_{it}}\right)$
-- **Random Intercept**: $u_i$ represents the cluster-specific deviation from the fixed intercept $\alpha$.
+If $u_i$ is a **random slope** for the covariate $x_{it}$, then:
 
 $$
 \begin{aligned}
 \begin{bmatrix} 
-\text{logit}(\pi_{11}) \\ 
-\text{logit}(\pi_{12}) \\ 
-\text{logit}(\pi_{21}) \\ 
-\text{logit}(\pi_{22}) \\ 
-\end{bmatrix} & = 
+g(\mu_{11}) \\ 
+g(\mu_{12}) \\ 
+g(\mu_{21}) \\ 
+g(\mu_{22}) \\ 
+\end{bmatrix} &= 
 \begin{bmatrix} 
 1 & x_{11} \\ 
 1 & x_{12} \\ 
 1 & x_{21} \\ 
 1 & x_{22} \\ 
 \end{bmatrix}
-\begin{bmatrix} \alpha \\ \beta\end{bmatrix} + 
+\begin{bmatrix} \alpha \\ \beta\end{bmatrix}
++ 
 \begin{bmatrix} 
-1 & 0 \\ 
-1 & 0 \\ 
-0 & 1 \\ 
-0 & 1 \\ 
+x_{11} & 0 \\ 
+x_{12} & 0 \\ 
+0 & x_{21} \\ 
+0 & x_{22} \\ 
 \end{bmatrix}
 \begin{bmatrix} u_1 \\ u_2\end{bmatrix} \\
+\\
+\begin{bmatrix} 
+g(\mu_{11}) \\ 
+g(\mu_{12}) \\ 
+g(\mu_{21}) \\ 
+g(\mu_{22}) \\ 
+\end{bmatrix}
+&=
+\begin{bmatrix} 
+\alpha + x_{11}(\beta + u_1) \\ 
+\alpha + x_{12}(\beta + u_1) \\ 
+\alpha + x_{21}(\beta + u_2) \\ 
+\alpha + x_{22}(\beta + u_2) \\ 
+\end{bmatrix}
 \end{aligned}
 $$
 
+- The term $(\beta + u_i)$ represents the cluster-specific slope.
+- $\alpha$ and $\beta$ are the fixed effects while $u_1$ and $u_2$ are the random slope deviations.
 
+## GLMM - Random Intercept & Slope {.build .scrollable-slide}
 
-## Logistic GLMM with Random intercept for binary matched pairs
+Let $I = 2$, $T = 2$, and $\boldsymbol{\beta} = \begin{bmatrix} \alpha \\ \beta\end{bmatrix}$. 
 
-(matched pair i induces the cluster, t can be thought of as the treatment)
-
-Cluster $i$ consists of the responses $(y_{i1}, y_{i2})$ for matched pair $i$. Observation $t$ in cluster $i$ has $y_{it} = 1$ (success) or 0 (failure), $t =  1, 2$. Let
-
-$$
-\mu_{it} =  P(Y_{it} =1 \mid u_i ) \\
-g(\cdot) \text{ be the logit link} \\
-\boldsymbol{\beta}^T = (\alpha, \beta) \\
-\mathbf{x}^T_{i1} =(1,0) \\
-\mathbf{x}^T_{i2} =(1,1), \qquad \forall i \\
-z_{it} = 1 , \qquad \forall i, t \\
-$$
-
+Now, $\mathbf{u}_i = \begin{bmatrix} u_{0i} \\ u_{1i} \end{bmatrix}$ is a **vector** (bivariate) containing a random intercept and a random slope.
 
 $$
-g(\mu_{it}) = \mathbf{x}^T_{it}\boldsymbol{\beta} + \mathbf{z}_{it}^T \mathbf{u}_i
-\\
+\begin{aligned}
 \begin{bmatrix} 
-g(\mu_{i1}) \\ 
-g(\mu_{i2}) \\ 
-\end{bmatrix} = 
+g(\mu_{11}) \\ 
+g(\mu_{12}) \\ 
+g(\mu_{21}) \\ 
+g(\mu_{22}) \\ 
+\end{bmatrix} &= 
 \begin{bmatrix} 
-\mathbf{x}_{i1}^\top \\ 
-\mathbf{x}_{i2}^\top \\ 
-\end{bmatrix} \boldsymbol{\beta} + 
-\begin{bmatrix} 
-\mathbf{z}_{i1}^\top \\ 
-\mathbf{z}_{i2}^\top \\ 
-\end{bmatrix} \mathbf{u}_i
-\\
-\begin{bmatrix} 
-g(\mu_{i1}) \\ 
-g(\mu_{i2}) \\ 
-\end{bmatrix} = 
-\begin{bmatrix} 
-1 & 0 \\ 
-1 & 1 \\ 
-\end{bmatrix} 
-\begin{bmatrix} 
-\alpha \\
-\beta
-\end{bmatrix} 
+1 & x_{11} \\ 
+1 & x_{12} \\ 
+1 & x_{21} \\ 
+1 & x_{22} \\ 
+\end{bmatrix}
+\begin{bmatrix} \alpha \\ \beta\end{bmatrix}
 + 
 \begin{bmatrix} 
-1 \\ 
-1 \\ 
-\end{bmatrix} \mathbf{u}_i
-\\
-= 
-\begin{bmatrix} 
-1 & 0 \\ 
-1 & 1 \\ 
-\end{bmatrix} 
-\begin{bmatrix} 
-\alpha \\
-\beta
-\end{bmatrix} 
-+ 
-\begin{bmatrix} 
-u_i \\ 
-u_i \\ 
-\end{bmatrix} \\
-= \begin{bmatrix} 
-\alpha + u_i \\ 
-\alpha + \beta + u_i \\ 
-\end{bmatrix} 
-$$
-
-
-## Rasch Model and Item Response Models
-
-(matched pair i induces the cluster, t can be thought of as the treatment)
-
-- An extension of the logistic-match pairs model that allows $T>2$ observations in each cluster.
-- The random intercept model has the form
-
-$$
-logit [P(\mathbf{Y}_{it}=1 \mid u_i)] = \alpha + \beta_t + u_i
-$$
-
-
-
-
-```{r}
-summary(model_glm)
-```
-
-```{r}
-summary(model_glmm )
-```
-
-
-```{r}
-summary(model_glm)
-```
-
-
-```{r}
-summary(model_glmm)
-```
-
-
-```{r}
-model_glm  <- glm(outcome ~ drug + time + drug*time, family = binomial, data = depression_data)
-model_glmm <- glmer(outcome ~ drug + time + drug*time + (1 | case), family = binomial, data = depression_data)
-```
-
-glmer(response ~ treat * time + (1 | id), family = binomial)
-
-
-
-```{r}
-model_glm$deviance - deviance(model_glmm)
-```
-
-```{r}
-model_glm$df.residual - df.residual(model_glmm)
-# 3.84
-```
-
-
-
-
-```{r}
-Contraception %>% ggplot(aes(x = age, color = use)) +
-  geom_boxplot() +
-  facet_grid(fake_district~.) + theme_bw()
-```
-
-
-
-
-
-
-```{r}
-# grid_long %>% filter(age == 0.0) %>% arrange(desc(prob_glmm))
-```
-
-
-
-
-
-```{r}
-# # library(lme4)
-# # 1. Fit the model
-# m1 <- glmer(use ~ age +  (1 | fake_district), family = binomial, data = Contraception)
-# # 2. Extract District Variance
-# dist_var <- as.data.frame(VarCorr(m1))$vcov[1]
-# 
-# # 3. Apply formula (pi^2 / 3 ≈ 3.289)
-# icc_value <- dist_var / (dist_var + (pi^2 / 3))
-# print(icc_value)
-```
-
-
-
-
-```{r}
-# summary(model_glm)
-```
-
-
-$$
-g(\boldsymbol{\mu}_i) = \mathbf{X}_i \boldsymbol{\beta} + \mathbf{Z}_i \mathbf{u}_i
+1 & x_{11} & 0 & 0 \\ 
+1 & x_{12} & 0 & 0 \\ 
+0 & 0 & 1 & x_{21} \\ 
+0 & 0 & 1 & x_{22} \\ 
+\end{bmatrix}
+\begin{bmatrix} u_{01} \\ u_{11} \\ u_{02} \\ u_{12} \end{bmatrix} \\
 \\
 \begin{bmatrix} 
-g(\mu_{i1}) \\ 
-g(\mu_{i2}) \\ 
-\vdots \\ 
-g(\mu_{iT_i}) 
-\end{bmatrix} = 
+g(\mu_{11}) \\ 
+g(\mu_{12}) \\ 
+g(\mu_{21}) \\ 
+g(\mu_{22}) \\ 
+\end{bmatrix}
+&=
 \begin{bmatrix} 
-\mathbf{x}_{i1}^\top \\ 
-\mathbf{x}_{i2}^\top \\ 
-\vdots \\ 
-\mathbf{x}_{iT_i}^\top 
-\end{bmatrix} \boldsymbol{\beta} + 
-\begin{bmatrix} 
-\mathbf{z}_{i1}^\top \\ 
-\mathbf{z}_{i2}^\top \\ 
-\vdots \\ 
-\mathbf{z}_{iT_i}^\top 
-\end{bmatrix} \mathbf{u}_i
+(\alpha + u_{01}) + x_{11}(\beta + u_{11}) \\ 
+(\alpha + u_{01}) + x_{12}(\beta + u_{11}) \\ 
+(\alpha + u_{02}) + x_{21}(\beta + u_{12}) \\ 
+(\alpha + u_{02}) + x_{22}(\beta + u_{12}) \\ 
+\end{bmatrix}
+\end{aligned}
 $$
 
-
-
-
-
-
-
-
-
-## III. Statistical Core (The "Master's" Details) – 8 Minutes
-
-* The Estimation Challenge (The Integral): This is the biggest difference from GLMs. Explain that the marginal likelihood $L(\beta, \theta) = \int f(y|u)f(u)du$ has no closed-form solution.
-* Approximation Methods: Briefly name-drop how software solves this: Laplace Approximation or Gauss-Hermite Quadrature.
-* Shrinkage (Empirical Bayes): Explain that $u$ are not "estimated" like $\beta$, but "predicted" via Empirical Bayes. This causes Shrinkage—pulling unstable group estimates toward the global mean.
-* Random Intercepts vs. Slopes: Use a visual to show how $Z$ changes to allow slopes to vary.
-
-## IV. Implementation & Inference – 5 Minutes
-
-* Software: glmer (lme4) or glmmTMB in R.
-* Interpretation Paradox: Mention that $\beta$ in a GLMM is a subject-specific effect. (e.g., "For a specific person, a 1-unit increase in X increases their log-odds by $\beta$"). Contrast this briefly with GEE (Population-Averaged).
-* Inference Issues: Mention the Boundary Problem: testing $H_0: \sigma^2 = 0$ is tricky because the null value is at the edge of the possible range (you can't have negative variance), making standard Likelihood Ratio Tests slightly conservative.
-
-## V. Summary & Q&A – 5 Minutes
-
-* Takeaway: GLMM = GLM + Random Effects + Integration.
-* Pro-Tip: If you show a table of results, make sure to point out the Variance Components ($\sigma^2_u$) and the Residual Variance.
-
-
-## Why these additions matter for your class:
-
-   1. The $Z$ Matrix: In an MS Stats class, "The Equation" isn't complete without acknowledging the design matrix for the random effects.
-   2. The Integral: This is the theoretical "heart" of why GLMMs are harder than GLMs. Acknowledging that we have to integrate out $u$ shows you understand the underlying calculus.
-
-## 🕒 I. The Problem (The Data) – 5 mins
-
-* Show the Data: Use a classic example (e.g., students in schools, or patients in clinics).
-* The "Illegal" Step: Show a quick plot of the data. Point out that points within a group are closer to each other than to the rest.
-* The GLM Failure: Explain that GLMs assume independence. If we ignore the groups, we commit Pseudoreplication.
-* ⚡ Key Point: Tell them the GLM will give us "overconfident" (too small) p-values because it thinks we have more independent information than we actually do.
-
-## 📐 II. The Equation (The Anatomy) – 8 mins
-
-* Transition to Notation: Move from the data plot to the math.
-* The Formula: $g(E[Y|u]) = X\beta + Zu$
-* $X\beta$ (Fixed): The "Average" effect we care about.
-   * $Zu$ (Random): The "Group-specific" noise.
-* The Distribution: Mention $u \sim N(0, G)$. We aren't estimating every group's specific value; we are estimating the variance between them.
-
-## 🧠 III. The "Master's" Hurdle (Integration) – 5 mins
-
-* The No-Go Zone: Unlike a GLM, there is no closed-form solution.
-* The Integral: Show the integral: $L = \int f(y|u)f(u)du$.
-* The Explanation: To find the best $\beta$, we have to "average out" (integrate) all the possible values of the random effects $u$.
-* The Tool: Mention we use Laplace Approximation to turn that scary integral into something a computer can optimize.
-
-## 💻 IV. R Example & The "Fixed vs. Random" Debate – 10 mins
-
-* The Comparison: Show a table comparing a glm() vs. a glmer().
-* Point out how the Standard Errors get larger (and more honest) in the GLMM.
-* The "District" Question: Ask the class: "Why not just put 'District' as a fixed factor?"
-* Loss of Degrees of Freedom: If you have 50 districts, you waste 49 degrees of freedom.
-   * Inference: Fixed effects only tell us about those 50 districts. Random effects let us generalize to all districts in the country.
-   * Shrinkage: Mention that GLMMs "pull" weird outlier groups toward the global average (Empirical Bayes), making them more robust.
-
-## 🏁 V. Wrap-up – 2 mins
-
-* Summary: GLMM = The flexibility of GLM + The grouping power of Mixed Models.
-* Final Tip: Check your variance components. If $\sigma^2$ is near zero, you might not even need a GLMM!
-
-------------------------------
-## Pro-Tip for your Live Demo:
-When you show the R output, the class will likely ask about the "Correlation of Fixed Effects" table at the bottom. You can tell them that for a 30-minute intro, they can mostly ignore that—focus instead on the "Random Effects" block where it shows the Std.Dev. of the Intercept.
-Would you like a sample R code snippet with a built-in dataset (like cbpp or grouseticks) that you can copy-paste for your demo?
-
-
-
-
+- **Fixed Part:** $\alpha$ (intercept) and $\beta$ (slope).
+- **Random Part:** $u_{0i}$ (intercept deviation) and $u_{1i}$ (slope deviation) for each cluster $i$.
+- $\mathbf{Z}$ is now a **block-diagonal matrix** where each block is the $\mathbf{z}_{it}$ values for that cluster.

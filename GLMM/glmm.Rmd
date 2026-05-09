@@ -1,0 +1,56 @@
+---
+title: "General Linear Mixed Models"
+author: "Shaine Rosewel P. Matala"
+date: "2026-04-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Definition of terms
+
+## Random effects
+
+- A way to do the correct statistical tests when some observations are correlated
+- When samples are collected in groups, there will be some variation within groups and some among groups. Such grouping violates the assumption of independent observations that is part of most statistical models.
+- a way to combine information from different levels within a grouping variable
+
+
+
+- Example:
+  - Goal: you want to know if Deciduous trees are taller than evergreen trees
+  - Problem: if you measure 100 individual oak trees (deciduous) and 100 individual pine trees (evergreen), you might think you sample size is 200. However, all those oaks share the same genetics and environment - they are correlated. If you treat them as 100 independent data points, you are overestimating how much evidence you actually have for Deciduous trees in general. You really just have a lot of evidence about those specific oaks.
+  - Solutions: 
+    - The "Averaging" Way: You take the average height of the 100 Oaks and the average of the 100 Pines. Now you only have two data points. This is safe but "throws away" the information about how much individual trees vary.
+    - The "Random Effects" Way: You keep all 200 individual measurements but tell the statistical model that "Species" is a random effect. The model then mathematically adjusts for the fact that trees within a species are related.
+  - Hierarchy of variation:
+    - Broad Category (Fixed Effect): The big difference you care about (Deciduous vs. Evergreen).
+    - Species Variation (Random Effect): The differences between species within those categories (Oaks vs. Maples).
+    - Individual Variation (Residual Error): The differences between individual trees of the same species (this Oak vs. that Oak).
+  -  Because those Oaks share "Oak-ness," they aren't iid (Independent and Identically Distributed). If you ignore that grouping, the model thinks it has 100 unique pieces of evidence when it really just has 100 copies of "what an Oak looks like." By adding Species as a random effect, the model essentially says: "I know these trees are related. I'm going to account for that internal correlation so I don't get 'too excited' and give you a result that's more certain than it actually is." It doesn't technically make the individual trees independent; instead, it factors out the shared variation so that your final comparison between Deciduous and Evergreen is valid. This prevents you from getting a "significant" result just because you happened to measure one very tall species of Oak.
+  
+  
+Types of Multiple Random Effects
+Nested Random Effects: These occur when levels of one factor only exist within levels of another.
+Example: Students nested within classrooms, which are further nested within schools.
+R Syntax (lme4): (1 | school/classroom) or (1 | school) + (1 | school:classroom).
+Crossed Random Effects: These occur when every level of one factor can potentially interact with every level of another factor.
+Example: Each student in an experiment responds to multiple items. Since different students all see the same items, "Students" and "Items" are crossed.
+R Syntax (lme4): (1 | student) + (1 | item).
+Random Slopes: You can have multiple random effects for the same grouping factor.
+Example: In a longitudinal study, each person might have their own starting point (random intercept) and their own rate of change over time (random slope).
+R Syntax (lme4): (1 + time | subject).
+  
+  
+Key Considerations for Multiple Effects
+Replication and Levels: For a grouping variable to be a reliable random effect, it should ideally have at least 5 to 6 levels (e.g., 6 different schools) to allow the model to accurately estimate the variance between those levels.
+Model Complexity: Adding multiple random effects significantly increases the computational complexity. If the data is too small for the number of parameters, the model may fail to converge or result in a "singular fit," where some variances are estimated as zero.
+Variance Partitioning: Using multiple random effects allows you to quantify how much of the total variation is due to different sources (e.g., how much variance comes from the "worker" vs. the "machine batch")
+
+
+
+# References:
+
+- https://ms.mcmaster.ca/~bolker/classes/s4c03/notes/GLMM_Bolker_draft5.pdf
