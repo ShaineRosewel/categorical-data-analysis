@@ -3,7 +3,7 @@ title: "Modeling Workers' Return-to-Office Decisions in Australia"
 author: "Shaine Rosewel Matala"
 date: "`r Sys.Date()`"
 abstract: |
-  This paper uses the Global Survey of Working Arrangements (G-SWA, 2022) to describe respondents from the working class of Australia based on the decision they would take if their employer announced that all employees must return to the worksite 5+ days a week by a certain date. The response signals a preference for either a hybrid/WFH or 100% in-office work setting. We aim to describe this decision based on their immediate environment's perception of remote work, commute time, gender, age, whether they have children, industry, and other factors. We consider a generalized linear model with an identity or logistic link. This may be beneficial for employers and the government in understanding workers' needs and potentially informing regulations.
+  This paper uses the Global Survey of Working Arrangements (G-SWA, 2022) to describe respondents from the working class of Australia based on the decision they would take if their employer announced that all employees must return to the worksite 5+ days a week by a certain date. The response signals a preference for either a hybrid/WFH or 100% in-office work setting. We aim to describe this decision based on their immediate environment's perception of remote work, commute time, gender, age, whether they have children, industry, and other factors. We will consider a generalized linear model with logit link or a mixed model, depending on the final preprocessing of the variables. This may be beneficial for employers and the government in understanding workers' needs and potentially informing regulations.
 number_sections: true
 fig_caption: yes
 output:
@@ -63,7 +63,8 @@ knitr::opts_chunk$set(
   echo    = FALSE,
   message = FALSE,
   warning = FALSE,
-  knitr.kable.NA = ''
+  knitr.kable.NA = '',
+  fig.align = "center"
 )
 ```
 
@@ -86,7 +87,7 @@ library(knitr)
 
 ```
 
-# Related Literature
+# Factors Associated to Work Arrangement Preference
 
 
 ```{r, child = "child/02_rrl.Rmd", echo = FALSE}
@@ -130,6 +131,9 @@ library(knitr)
 
 
 # Appendix {-}
+
+\setlength{\parindent}{0pt}
+\nonfrenchspacing 
 
 \vspace*{0.8cm}
 

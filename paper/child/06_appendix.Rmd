@@ -1,0 +1,410 @@
+```{r echo = FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  knitr.kable.NA = '',
+  fig.align = "center"
+)
+```
+
+## Analysis
+
+Packages used:
+
+```{r}
+library(kableExtra)
+library(dplyr)
+library(tidyr)
+library(MASS)
+library(pROC)
+library(caret)
+library(knitr)
+library(lme4)
+library(stargazer)
+library(knitr)
+library(kableExtra)
+```
+
+Read the data and select the variables of interest. We collapse the following responses: "Look for a job to WFH 1-2 days" and "Quit job", and create the `decision` target variable.
+
+```{r}
+raw <- read.csv("data/Replication file/Data/G-SWA.csv") %>% 
+  filter(country == 'Australia 2') %>% 
+  dplyr::select(c(regionname,
+                  gender,
+                  age,
+                  education,
+                  industry_job,
+                  married,
+                  with_kids,
+                  daysemployee_work_home,
+                  value_WFH_rawpercent25,
+                  commuting_time,
+                  WFHperceptions,
+                  return_office
+                  ))%>%
+  mutate(decision = ifelse(
+    return_office == 'Comply and return to worksite', 0, 1)) %>%
+  dplyr::select(-c(return_office))
+```
+
+We fill missing data points with the mode.
+
+```{r}
+raw$regionname[raw$regionname==""] <- "New South Wales"
+raw$with_kids[is.na(raw$with_kids)] <- 0
+raw$gender <- ifelse(raw$gender=="Other/Prefer not to say", "Male", raw$gender)
+```
+
+To minimize the presence of categories with small frequencies, we collapse zero and negative scores for `value_WFH_rawpercent25` and `WFHperceptions`.
+
+```{r}
+raw$value_WFH_rawpercent25 <- ifelse(raw$value_WFH_rawpercent25<0,
+                                     0,
+                                     raw$value_WFH_rawpercent25)
+raw$WFHperceptions <- ifelse(raw$WFHperceptions<0,
+                             0,
+                             raw$WFHperceptions)
+```
+
+We set the columns to their appropriate type.
+
+```{r}
+cols_to_factor <- c("regionname", "gender", "industry_job", "married", 
+                    "decision", "education", "with_kids")
+
+raw <- raw %>% 
+  mutate(across(all_of(cols_to_factor), as.factor))
+```
+
+For a different dataset preparation, we meaningfully collapse some levels for `industry_job` and `regionname`. This is to see if there will be changes in the results.
+
+```{r}
+raw <- raw %>% mutate(industry_group = case_when(
+                          # High WFH Potential
+                          industry_job %in% c(
+                            "Professional & Business Services", 
+                            "Finance or Insurance",
+                            "Information", 
+                            "Real Estate", 
+                            "Education") ~ "Professional & Knowledge Services",
+                          # High/Hybrid WFH Potential: Institutional Work
+                          industry_job %in% c(
+                            "Government"
+                            ) ~ "Public Admin",
+                          # Moderate/Hybrid: Healthcare
+                          industry_job %in% c(
+                            "Health Care & Social Assistance"
+                            ) ~ "Healthcare & Social Assistance",
+                          # Low WFH: Trade & Physical Logistics
+                          industry_job %in% c(
+                            "Retail Trade", 
+                            "Wholesale Trade",
+                            "Transportation or Warehousing"
+                            ) ~ "Trade & Transportation",
+                          # Low/No WFH: Physical Labor & Production
+                          industry_job %in% c(
+                            "Manufacturing", 
+                            "Construction", 
+                            "Utilities", 
+                            "Mining", 
+                            "Agriculture",
+                            "Hospitality & Food Services", 
+                            "Arts & Entertainment"
+                            ) ~ "Production & Physical Labor",
+                          TRUE ~ industry_job # Catch-all for any missed entries
+                        ),
+                        region_group = case_when(
+                        # The administrative heart of Australia
+                        regionname == "Australian Capital Territory" 
+                        ~ "Institutional/Knowledge Hub",
+                        
+                        # Policy leader in WFH legislation
+                        regionname == "Victoria" ~ 
+                          "High-Density Policy Leader",
+                        
+                        # Major economic engines with large metropolitan cores
+                        regionname %in% c(
+                          "New South Wales", "Queensland", "Western Australia"
+                          ) ~ "Diversified Metro/Regional",
+                        # Smaller populations or high regional/remote spread
+                        regionname %in% c(
+                          "South Australia", 
+                          "Tasmania", 
+                          "Northern Territory"
+                          ) ~ "Service-Based & Regional",
+                        TRUE ~ "Other"
+                      )
+                      )
+raw$industry_group <- relevel(factor(raw$industry_group), 
+                                  ref = "Other")
+```
+
+The `select_model_for_glm` function is created to make fitting across formula less repetitive. It uses forward selection on a GLM with the logit link to get the final model. The `tabularize_anova` function can be used to display anova results in an organized manner.
+
+```{r echo = TRUE}
+# options(contrasts = c("contr.treatment", "contr.poly"))
+
+select_model_for_glm <- function(full_model_formula) {
+  null_model <- glm(decision ~ 1, 
+                    data = raw, 
+                    family = binomial)
+  full_model <- glm(full_model_formula, 
+                     data = raw, 
+                     family = binomial(link='logit'))
+  forward_selection_model <- step(
+    null_model, 
+    scope = list(lower = null_model, 
+                 upper = full_model),
+    direction = "forward", 
+    trace = 0
+    )
+  return(forward_selection_model)
+}
+
+tabularize_anova <- function(
+    anova_result,
+    rownamess = c("Model 1: Linear", "Model 2: Quadratic"),
+    caption = "Likelihood Ratio Test: Linear vs. Quadratic Commuting Time"
+    ){
+  
+  res_table <- as.data.frame(anova_result)
+  rownames(res_table) <- rownamess
+  
+  res_table[] <- lapply(res_table, function(x) {
+    x <- ifelse(is.na(x), "", format(round(x, 3), nsmall = 3))
+    return(x)
+  })
+  
+  return(res_table %>%
+           kable("latex", 
+           caption = caption,
+           col.names = c("Resid. Df", "Resid. Dev", 
+                         "Df", "Deviance", "P-value"),
+           booktabs = TRUE,
+           escape = TRUE,
+           linesep = "",
+           row.names = FALSE) %>%
+      kable_styling(latex_options = "HOLD_position", 
+                    position = "center", 
+                    full_width = FALSE)
+  )
+}
+```
+
+```{r include = FALSE}
+stargazer_format <- function(model, title = "Decision to Work from Home", 
+                             added_lines = NULL, 
+                             tab_label = "glm",
+                             covar_labels = c("WFH Days", "Age", 
+                                              "Commute Time", 
+                                              "Commute Time Squared", 
+                                              "Has Kids", "Male")){
+  return(
+    stargazer(model, 
+          type = "latex",
+          header = FALSE,   
+          # no.space = TRUE, 
+          single.row = TRUE, 
+          title = title,
+          dep.var.labels = "Decision to Work from Home",
+          covariate.labels = covar_labels,
+          add.lines = added_lines,
+          label = paste0("tab:",tab_label))
+  )
+}
+```
+
+We first try to fit a GLM with logit link using the original factors for both `regionname` and `industry_job`.
+
+```{r}
+glm_original <- select_model_for_glm("decision ~ age + I(age^2) + married + 
+                                      commuting_time +
+                                      I(commuting_time^2) + 
+                                      daysemployee_work_home + 
+                                      value_WFH_rawpercent25 + WFHperceptions +
+                                      regionname + industry_job +
+                                      gender*education*with_kids")
+
+glm_original_clean <- glm(decision ~ daysemployee_work_home + age + commuting_time + 
+    I(commuting_time^2) + with_kids + gender,
+    data = raw, 
+    family = binomial(link='logit')
+    )
+```
+
+We also try to fit a model without the nonlinear term for `age` and `commute_time`.
+
+```{r}
+glm_original_linear <- select_model_for_glm("decision ~ age + married +
+                                      commuting_time + 
+                                      daysemployee_work_home + 
+                                      value_WFH_rawpercent25 + WFHperceptions +
+                                      regionname + industry_job + 
+                                      gender*education*with_kids")
+
+glm_original_linear_clean <- glm(decision ~ daysemployee_work_home + age + commuting_time + 
+    with_kids + gender,
+    family = binomial, 
+    data = raw
+    )
+```
+
+Since the forward selection uses AIC, we also would like to verify if LRT selects the same model if we compare it to the model where we remove the nonlinear main effect for `commute_time`.
+
+```{r}
+res <- anova(glm_original_linear_clean, glm_original_clean, test = "Chisq")
+tabularize_anova(res)
+```
+
+We reject the null hypothesis that the simpler model fits the data as well as the more complex one. Hence, we select the more complex one that includes the quadratic term for `commute_time` --- `glm_original_clean`.
+
+
+```{r}
+glm_collapsed <- select_model_for_glm("decision ~ age+ I(age^2) + married + 
+                                      commuting_time + 
+                                      I(commuting_time^2) + 
+                                      daysemployee_work_home + 
+                                      value_WFH_rawpercent25 + WFHperceptions + 
+                                      region_group + industry_group + 
+                                      gender*education*with_kids")
+```
+
+```{r}
+glm_collapsed_clean <- glm(decision ~ daysemployee_work_home + age + commuting_time + 
+    I(commuting_time^2) + with_kids + gender,
+    family = binomial, 
+    data = raw
+    )
+```
+
+
+```{r echo = FALSE, results='asis'}
+stargazer(glm_original_clean,glm_collapsed_clean, 
+          type = "latex", 
+          column.labels = c("Original", "Collapsed"),
+          header = FALSE,
+          title = "GLM Comparison Table",
+          model.numbers = FALSE,  # Removes (1), (2)
+          model.names = FALSE,    # Prevents R from re-inserting them
+          dep.var.labels = "Decision to Work from Home")
+```
+
+```{r echo = FALSE, results='asis'}
+stargazer(glm_original_clean,glm_original_linear,
+          type = "latex",
+          column.labels = c("With Nonlinear Term", "Linear"),
+          title = "GLM Comparison Table",
+          header = FALSE,
+          model.numbers = FALSE,  # Removes (1), (2)
+          model.names = FALSE,    # Prevents R from re-inserting them
+          dep.var.labels = "Decision to Work from Home")
+```
+
+As shown respectively in Tables \ref{tab:glm_o} and \ref{tab:glm_c}, `glm_original` and `glm_collapsed` lead to the same output. The standard errors are also not excessively large. We stick to the original levels and use `glm_original`.
+
+
+
+We will then try to consider random effects induced by `regionname` or `industry_job` since these are potential sources of dependencies. Prior to that, we standardize both `age` and `commuting_time` to address the warning "Model is nearly unidentifiable: very large eigenvalue".
+
+```{r}
+raw
+```
+
+
+```{r}
+raw$age <- (raw$age - mean(raw$age))/sd(raw$age)
+raw$commuting_time <- (raw$commuting_time - mean(raw$commuting_time))/sd(raw$commuting_time)
+
+glm_standardized_original <- select_model_for_glm("decision ~ age+ I(age^2) + 
+                                                  married + with_kids + 
+                                                  commuting_time + 
+                                                  I(commuting_time^2) + 
+                                                  daysemployee_work_home + 
+                                                  value_WFH_rawpercent25 + 
+                                                  WFHperceptions + regionname + 
+                                                  industry_job + 
+                                                  gender*education*with_kids")
+
+glmm_standardized <- glmer(
+  decision ~ gender + age + with_kids + commuting_time + I(commuting_time^2) +
+    daysemployee_work_home + (1 | industry_job),
+  data=raw,
+  family=binomial(link="logit"))
+
+glm_standardized_original_clean <- glm(
+  formula = decision ~ daysemployee_work_home + age + commuting_time + 
+    I(commuting_time^2) + with_kids + gender, family = binomial, 
+  data = raw)
+
+glmm_standardized_clean <- glmer(
+  decision ~ gender + age + with_kids + commuting_time + I(commuting_time^2) +  
+    daysemployee_work_home + (1 | industry_job), family = binomial, 
+  data = raw)
+```
+
+```{r}
+saveRDS(glm_standardized_original_clean, file = "model.rds")
+```
+
+
+```{r echo = FALSE, results='asis'}
+re_var <- as.data.frame(VarCorr(glmm_standardized_clean))
+var_value <- round(re_var[1, "vcov"], 3) 
+
+stargazer(glm_standardized_original_clean, glmm_standardized_clean,
+          type = "latex",
+          column.labels = c("GLM", "GLMM"),
+          title = "GLM Comparison Table",
+          model.numbers = FALSE,
+          header = FALSE,
+          model.names = FALSE,
+          dep.var.labels = "Decision to Work from Home",
+          add.lines = list(c("Random Effect Var (Industry job)", " ", var_value))
+)
+```
+
+The estimated variance across industry jobs is nonzero but not too far from zero. 
+
+Comparing the AIC between `glm_standardized_original` and (`r AIC(glmm_standardized)`) shows that the value for the GLM is lower than that of GLMM. As a result, we stick to the simpler model. 
+
+```{r}
+performance::check_overdispersion(glm_standardized_original)
+```
+
+```{r}
+performance::check_collinearity(glm_standardized_original)
+```
+
+```{r}
+performance::check_outliers(glm_standardized_original)
+# sum(cooks.distance(glm_standardized_original) > 0.5)
+```
+
+
+
+```{r}
+car::durbinWatsonTest(glm_standardized_original)
+```
+
+
+Here are the confidence intervals.
+
+
+```{r}
+as.data.frame(exp(confint(glm_standardized_original))) %>%
+           kable("latex",
+           # caption = caption,
+           # col.names = c("Resid. Df", "Resid. Dev",
+           #               "Df", "Deviance", "P-value"),
+           booktabs = TRUE,
+           escape = TRUE,
+           linesep = "",
+           row.names = FALSE) %>%
+      kable_styling(latex_options = "HOLD_position",
+                    position = "center",
+                    full_width = FALSE)
+```
+
+
