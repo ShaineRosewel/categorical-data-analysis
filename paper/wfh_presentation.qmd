@@ -1,0 +1,368 @@
+---
+title: Modeling Workers' Return-to-Office Decisions in Australia
+author: Shaine Rosewel Matala
+format:
+  revealjs:
+    transition: slide
+    background-transition: fade
+    number-sections: TRUE
+    date: today
+    chalkboard: TRUE
+    output-file: my_revealjs
+  beamer: 
+    aspectratio: 32
+    theme: CambridgeUS
+    colortheme: lily
+    slide-level: 2
+    colorlinks: TRUE
+    toc: TRUE
+    classoption: [handout]
+    date: last-modified
+    output-file: my_beamer
+  pdf:
+    link-citations: TRUE 
+    keep-tex: TRUE
+    toc: TRUE
+    output-file: my_pdf
+bibliography: child/references/references.bib
+nocite: |
+  @*
+pdf-engine: latexmk
+pdf-engine-opt: -xelatex
+csl: apa-6th-edition.csl
+---
+```{css, echo=FALSE}
+/* Force vertical-only scrolling and wrap text within the viewport */
+.reveal .slides section.scrollable {
+  overflow-x: hidden !important;
+  word-wrap: break-word;
+}
+
+/* Ensure lists don't expand past the slide width */
+.reveal .slides section.scrollable ul, 
+.reveal .slides section.scrollable ol {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+```
+
+\pagebreak
+
+# Introduction
+
+::: incremental
+-   Working from home is a formal arrangement where employees perform duties without daily physical attendance at the office, instead doing so remotely from a place of work such as the home or a café, at conventional hours or flexibly at other times, enabled by information and communication technologies (@vij-2023). 
+-   The COVID-19 pandemic in 2020 paved the way for a significant Work from Home (WfH) uptake across Australia.
+:::
+
+## Problem statement {.scrollable}
+
+::: incremental
+-   In late 2020 and early 2021, few employers believed that the hybrid model would be sustained beyond 2021, and some strongly rejected WfH as a long-term strategy. 
+-   Others recognized the need to adapt in terms of flexibility, while some viewed hybrid arrangements as appropriate only for certain roles. 
+-   Managerial employees, on the other hand, were generally more supportive of company policies allowing WfH in the long term (DITRDCSA, 2022). 
+-   These differing perspectives may translate into varying workplace policies, including mandates to return to the office.
+:::
+
+## Objectives
+
+::: incremental
+-  To examine the immediate decision of workers when faced with a mandate to return to the worksite 5+ days a week. In particular, it considers whether 
+   -   workers prefer to remain in a WfH arrangement (e.g., seeking a job that allows remote work or leaving their current job) or 
+   -   to return fully to in-office work (i.e., complying with the mandate). 
+-  To understand the factors associated with this decision, including perception of remote work, commute time, gender, age, presence of children, and industry.
+:::
+
+## Related Literature
+
+## Logit Results {.scrollable}
+
+```{r, results='asis'}
+library(kableExtra)
+library(dplyr)
+library(tidyr)
+library(knitr)
+model <- readRDS("C:/Users/shain/Projects/243/paper/child/model.rds")
+round(as.data.frame(summary(model)$coefficients), 3) %>%
+           kable(
+           booktabs = TRUE,
+           escape = TRUE,
+           linesep = "",
+           col.names = c("Estimate", "SE", "z", "p-value")) %>%
+      kable_styling(latex_options = "HOLD_position",
+                    position = "center",
+                    font_size = 30,
+                    full_width = FALSE)
+```
+
+## Log Odds Results {.smaller .scrollable}
+
+```{r}
+beta1 <- summary(model)$coefficients['commuting_time','Estimate']
+beta2 <- summary(model)$coefficients['I(commuting_time^2)','Estimate']
+```
+
+```{r}
+#| message: FALSE
+df <- cbind(as.data.frame(exp(model$coefficients)), as.data.frame(exp(confint(model))))
+colnames(df) <- c("Estimate", "2.5%", "97.5%")
+round(df,3) %>% kable(
+  booktabs = TRUE,
+  escape = TRUE,
+  linesep = "") %>%
+  kable_styling(latex_options = "HOLD_position",
+                position = "center",
+                font_size = 30,
+                full_width = FALSE)
+```
+
+- The log-odds of deciding to resign gets multiplied by 1.510 for a one unit increase in employees' desired number of days to WfH.  
+- The log-odds of deciding to resign gets multiplied by 0.769 for a one unit increase in standardized age. (a decrease in log-odds of resigning among older employees.)  
+- The log-odds of deciding to resign gets multiplied by 1.46 if employee has a kid.  
+- The log-odds of deciding to resign gets multiplied by $\exp(2 \times `r beta2` \times \text{commuting_time}) \times \exp(`r beta2`) \times \exp(`r beta1`) = \exp(`r 2*beta2` \times \text{commuting_time}) \times `r exp(beta2)*exp(beta1)`$ for a unit increase in standardized commute time.
+
+```{r}
+commuting_time <- 5
+exp(2*beta2*commuting_time)*exp(beta2)*exp(beta1)
+```
+
+```{r}
+library(ggplot2)
+
+b1 <- beta1
+b2 <- beta2
+
+df <- data.frame(time = seq(-3, 2, length.out = 100))
+
+df$odds_ratio <- exp(b1 + 2*b2*df$time + b2)
+
+ggplot(df, aes(x = time, y = odds_ratio)) +
+  geom_line(color = "darkgreen", size = 1.2) +
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  labs(title = "Impact of Commute on Resignation (Actual Data Range)",
+       subtitle = "Range limited to -2 to +3 Standard Deviations",
+       x = "Commute Time (Standardized)",
+       y = "Odds Ratio for +1 Unit Increase") + theme_bw()
+```
+
+
+
+```{r}
+library(ggplot2)
+
+predict_df <- data.frame(
+  commuting_time = seq(-3.0, 2.0, length.out = 100),
+  daysemployee_work_home = 0,
+  age = 0.0,
+  with_kids = factor("1", levels = c("0", "1")),
+  gender = factor("Male", levels = c("Male", "Female"))
+)
+
+predict_df$prob <- predict(model, newdata = predict_df, type = "response")
+
+ggplot(predict_df, aes(x = commuting_time, y = prob)) +
+  geom_line(color = "blue", size = 1.2) +
+  geom_abline(intercept = mean(predict_df$prob), slope = 0.1, 
+              linetype = "dashed", color = "gray") +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 0.5)) +
+  labs(title = "Probability of Resigning by Commute Time",
+       subtitle = "Blue line = Your Model | Dashed line = Linear Reference",
+       x = "Commute Time (Standardized: -3 to 2)",
+       y = "Probability of Resigning (%)") +
+  theme_bw()
+
+```
+
+
+
+## Conclusion
+
+
+
+::: {layout="[[1, 1, 1]]"}
+![R Language](images/RLogo.png){#fig-r-logo .fragment width="75%"}
+
+![RStudio IDE](images/RStudioLogo.png){#fig-rstudio .fragment width="70%"}
+
+![TinyTex](images/TinyTextLogo.png){#fig-tinytex .fragment width="50%"}
+:::
+
+::: {.callout-note .fragment}
+RStudio v2022.07 and later includes support for editing and preview of Quarto documents.
+:::
+
+# Integrated workflow {background-image="images/bg.jpg" background-size="contain" background-opacity="0.5"}
+
+R Markdown and Quarto allow for the seamless integration of narrative text, raw data, and executable code in a single document.
+
+## Simple Markdown syntax {background-image="images/bg.jpg" background-size="contain" background-opacity="0.5"}
+
+| Feature | LaTeX | Quarto |
+|:-------------------------|:------------------------|:--------------------|
+| [**Bold**]{.fragment fragment-index="1"} | [`\textbf{Heavy}`]{.fragment fragment-index="1"} | [`**Heavy**`]{.fragment fragment-index="1"} |
+| [*Italic*]{.fragment fragment-index="2"} | [`\textit{Slanted}`]{.fragment fragment-index="2"} | [`*Slanted*`]{.fragment fragment-index="2"} |
+| [[Links](https://quarto.org)]{.fragment fragment-index="3"} | [`\href{url}{text}`]{.fragment fragment-index="3"} | [`[text](url)`]{.fragment fragment-index="3"} |
+| [`Code`]{.fragment fragment-index="4"} | [`\texttt{fixed}`]{.fragment fragment-index="4"} | [`` `fixed` ``]{.fragment fragment-index="4"} |
+| [Images]{.fragment fragment-index="5"} | [`\includegraphics{...}`]{.fragment fragment-index="5"} | [`![](...)`]{.fragment fragment-index="5"} |
+
+: LaTeX vs Markdown {#tbl-comparison}
+
+::: {.fragment .fade-up}
+> **Verdict:** Less typing, more presenting for Quarto.
+:::
+
+## Inline and Display Math {background-image="images/bg.jpg" background-size="contain" background-opacity="0.5"}
+
+::: incremental
+-   In physics, the mass-energy equivalence is stated by the equation $E=mc^2$, discovered in 1905 by Albert Einstein.
+
+-   $$
+    \frac{\partial \mathrm C}{ \partial \mathrm t } + \frac{1}{2}\sigma^{2} \mathrm S^{2}
+    \frac{\partial^{2} \mathrm C}{\partial \mathrm S^2}
+      + \mathrm r \mathrm S \frac{\partial \mathrm C}{\partial \mathrm S}\ =
+      \mathrm r \mathrm C 
+    $$ {#eq-black-scholes}
+
+-   $$
+    \begin{aligned}
+    f(x) &= a(x - h)^2 + k \\
+         &= a(x^2 - 2xh + h^2) + k
+    \end{aligned}
+    $$ {#eq-vertex-expansion}
+:::
+
+## [Code execution control]((https://quarto.org/docs/computations/execution-options.html)) {.scrollable background-image="images/bg.jpg" background-size="contain" background-opacity="0.5"}
+
+::: incremental
+-   **`echo`**: **Show the source code.** If `FALSE`, the code stays hidden.
+
+    -   `#| echo: TRUE`
+    
+
+    ```{r}
+    #| echo: TRUE
+    print("I want to show the codes.")
+    ```
+
+    -   `#| echo: FALSE`
+
+    ```{r}
+    #| echo: FALSE
+    print("I want only the result.")
+    ```
+
+-   **`eval`**: **Evaluate the code.** If `FALSE`, the code is never executed.
+
+    -   `#| eval: TRUE`
+
+    ```{r}
+    #| eval: TRUE
+    print("Run the code.")
+    ```
+
+    -   `#| eval: FALSE`
+
+    ```{r}
+    #| eval: FALSE
+    print("Don't run the code.")
+    ```
+:::
+
+# Dynamic updating {background-image="images/bg.jpg" background-size="contain" background-opacity="0.5"}
+
+Results, tables, and figures update automatically when the underlying data changes, eliminating manual editing errors and ensuring the final paper remains up to date with the analysis.
+
+## Input {background-image="images/bg.jpg" background-size="contain" background-opacity="0.5"}
+
+```{r}
+#| echo: TRUE
+#| code-line-numbers: "|1-4|6-8|10-15|1,4"
+# load data
+library("kableExtra")
+data(iris)
+iris2 <- iris[4:6, c(1, 3, 2, 4, 5)]
+
+# calculations
+mean_sepal_length <- mean(iris2$Sepal.Length)
+mean_sepal_width <- mean(iris2$Sepal.Width)
+
+# format into a pretty table
+names(iris2) <- gsub('[.].+', '', names(iris2))
+rownames(iris2) <- NULL
+iris_table <- kable(iris2, booktabs = TRUE) %>%
+  add_header_above(c("Length" = 2, "Width" = 2, " " = 1)) %>%
+  add_header_above(c("Measurements" = 4, "More attributes" = 1))
+```
+
+## Output {background-image="images/bg.jpg" background-size="contain" background-opacity="0.5"}
+
+The means of sepal length and sepal width are `r round(mean_sepal_length,2)` and `r round(mean_sepal_width,2)`, respectively.
+
+```{r}
+#| echo: FALSE
+#| label: tbl-iris
+#| tbl-cap: "Iris Data"
+iris_table
+```
+
+# Multi-format outputs {background-image="images/bg.jpg" background-size="contain" background-opacity="0.5"}
+
+One source file can be rendered into professional PDFs, Word documents or Tex files for collaborators, interactive HTML reports and presentations, as well as into beamer or PowerPoint.
+
+## [Flexibility](https://quarto.org/docs/reference/formats/html.html) {background-image="images/bg.jpg" background-size="contain" background-opacity="0.5"}
+
+::: incremental
+1.  Specify the formats in your YAML.
+2.  Use the `Render` button or the terminal (`quarto render your_qmd.qmd --to format`).
+
+-   try for beamer
+-   try for html
+-   try for pdf
+:::
+
+# Automated elements {background-image="images/bg.jpg" background-size="contain" background-opacity="0.5"}
+
+Complex tasks such as cross-referencing (See @sec-cross-referencing, see [Cross-referencing](#sec-cross-referencing)), bibliography management (See @sec-citations), journal formats (See @sec-journal-extensions), plots and table formatting are handled programmatically, which maintains consistency throughout long documents.
+
+## [Cross-referencing](https://quarto.org/docs/authoring/cross-references.html) {#sec-cross-referencing background-image="images/bg.jpg" background-size="contain" background-opacity="0.5"}
+
+| Cross-reference | Text |
+|:---------------------------|:-------------------------------------------|
+| [**Equations**]{.fragment fragment-index="1"} | [Black-Scholes (@eq-black-scholes) is a mathematical model... @eq-vertex-expansion shows...]{.fragment fragment-index="1"} |
+| [**Image**]{.fragment fragment-index="2"} | [See @fig-rstudio]{.fragment fragment-index="2"} |
+| [**Tables**]{.fragment fragment-index="3"} | [@tbl-comparison shows how LaTeX differs from Markdown. The data is shown in @tbl-iris]{.fragment fragment-index="3"} |
+
+: {tbl-colwidths="\[20,80\]"}
+
+## [Citations](https://quarto.org/docs/authoring/citations.html) {#sec-citations background-image="images/bg.jpg" background-size="contain" background-opacity="0.5"}
+
+::: incremental
+-   Bibliography file (`.bib`)
+-   Syntax: According to `@klein` -\> According to
+-   YAML
+    -   `link-citations: TRUE`
+    -   `nocite` key in YAML
+-   Citation style (`.csl`)
+:::
+
+## Extensions for journals {#sec-journal-extensions background-image="images/bg.jpg" background-size="contain" background-opacity="0.5"}
+
+[JASA](https://github.com/quarto-journals/jasa#readme)
+
+# Challenges {background-image="images/bg.jpg" background-size="contain" background-opacity="0.5"}
+
+::: incremental
+-   Debugging
+    -   error messages can be vague (especially YAML + LaTeX)
+    -   one change may silently override defaults
+-   Formatting differences across outputs
+    -   looks great in RevealJS but breaks in PDF
+    -   fonts, spacing, figure placement behave differently
+-   File organization
+    -   managing images, references, and extensions can get messy
+:::
+
+# References {background-image="images/bg.jpg" background-size="contain" background-opacity="0.5"}
+
+::: {#refs}
+:::
