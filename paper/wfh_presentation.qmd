@@ -64,7 +64,7 @@ csl: apa-6th-edition.csl
 -   These differing perspectives may translate into varying workplace policies, including mandates to return to the office.
 :::
 
-## Objectives
+## Objectives {.scrollable}
 
 ::: incremental
 -  To examine the immediate decision of workers when faced with a mandate to return to the worksite 5+ days a week. In particular, it considers whether 
@@ -73,7 +73,183 @@ csl: apa-6th-edition.csl
 -  To understand the factors associated with this decision, including perception of remote work, commute time, gender, age, presence of children, and industry.
 :::
 
-## Related Literature
+## Related Literature {.scrollable}
+
+:::incremental
+- The 2024 Household Income and Labour Dynamics in Australia (HILDA) Survey data shows workforce participation in jobs allowing WfH increased by 9 percentage points for women with children under 4 years old and 4.4 percentage points for people with a disability from 2019 to 2023.
+-  As @barrero-2022 states, married persons—both men and women who are also carers---tend to place more value on the WfH option when they have children aged 14 years or younger.
+- @ruger-2024 show in their study that employees may be able to save an average of 14% of their time from commuting.
+- In their study, @vij-2023 shows that an average worker would be willing to forego around 4 to 8 percent of their annual wages in exchange of an ability to WfH on some workdays and/or workhours. @datasource-2022 refer to this as the amenity value of WfH.
+-  WfH capability differs based on the occupation of the individual. As to the report, WfH capability and uptake are much higher for managerial employees than non-managerial employees. @beck-2021 finds that during the pandemic, those with white collar occupations report to WfH for an average of 4.2 days compared to 1.5 for blue collar.
+- While firms often fear that restricting WfH may increase employee turnover, empirical evidence remains limited; using HILDA data, Mooi-Reci and Wooden (2025) find that greater WFH is associated with lower quit rates, though this effect is significant only among male employees (@lass-2025)
+- In US firms enforcing full return-to-office, many employees simply do not comply.
+:::
+
+## Data {.scrollable}
+
+```{r echo = FALSE}
+knitr::opts_chunk$set(
+  echo    = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  knitr.kable.NA = '',
+  fig.align = "center"
+)
+```
+
+
+```{r}
+library(kableExtra)
+library(dplyr)
+library(tidyr)
+library(MASS)
+library(pROC)
+library(caret)
+library(knitr)
+```
+
+```{r, results='asis'}
+raw <- read.csv("child/data/Replication file/Data/G-SWA.csv") %>% 
+  filter(country == 'Australia 2') %>% 
+  dplyr::select(c(regionname,
+                  gender,
+                  age, #agegroups,
+                  education,
+                  industry_job,
+                  married,
+                  with_kids,
+                  daysemployer_work_home,
+                  daysemployee_work_home,
+                  value_WFH_rawpercent25,
+                  commuting_time, # * commute_time_hs
+                  WFHperceptions,
+                  # ever_WFH,
+                  return_office
+                  )) %>%
+  # dplyr::select(-c(daysemployer_work_home)) %>%
+  mutate(decision = ifelse(return_office == 'Comply and return to worksite', 0, 1)) %>%
+ # mutate(employee_favored_agreement = daysemployee_work_home - daysemployer_work_home) %>%
+  dplyr::select(-c(daysemployer_work_home,return_office))
+
+n <- dim(raw)[1]
+```
+
+:::incremental
+- This study uses the Global Survey of Working Arrangements (G-SWA, 2022) dataset. 
+- The G-SWA is a survey of individual workers across more than two dozen countries done occasionally (@datasource-2022). 
+- We focus on the working class of Australia who primarily WfH and use the wave 2 phase of data collection. 
+- The total sample size is `r n`.
+
+```{r}
+head(raw) %>% kable(
+           booktabs = TRUE,
+           escape = TRUE,
+           linesep = "") %>%
+      kable_styling(latex_options = "HOLD_position",
+                    position = "center",
+                    font_size = 30,
+                    full_width = FALSE)
+```
+:::
+
+
+```{r}
+get_target_contingency <- function(raw_data, 
+                                   explanatory_variable, 
+                                   target_variable){
+  return(
+    raw_data %>% 
+      group_by(.data[[explanatory_variable]]) %>%
+      dplyr::count(.data[[target_variable]]) %>% 
+      pivot_wider(names_from = target_variable, values_from = n) %>%
+      # Calculate row total first
+      mutate(row_total = sum(`0`, `1`, na.rm = TRUE)) %>%
+      # Convert counts to proportions
+      mutate(across(c(`0`, `1`), ~ . / row_total)) %>%
+      arrange(desc(row_total)) 
+  )
+}
+```
+
+### Target Variable
+
+```{r}
+target_var_tab <- raw %>% 
+  dplyr::count(decision) %>%
+  mutate(prop = round(n/sum(n), 4))
+
+# target_var_tab %>% ggplot(aes(x = factor(decision), y = n)) +
+#   geom_col() +
+#   geom_text(aes(label = prop), vjust = -0.5) + 
+#   ylim(0, max(target_var_tab$n) * 1.1) + theme_bw() + ggtitle("Decision")
+
+ggplot(target_var_tab, aes(x = "", y = n, fill = factor(decision))) +
+  geom_col(width = 1, color = "white") +
+  coord_polar(theta = "y", start = 0) +
+  geom_text(
+    aes(label = paste0(n, "\n(", scales::percent(n / sum(n), accuracy = 0.1), ")")),
+    position = position_stack(vjust = 0.5)
+  ) +
+  theme_void() +
+  labs(fill = "Decision") +
+  ggtitle("Decision")
+
+```
+
+
+### Explanatory Variables {.scrollable}
+
+
+```{r}
+get_target_contingency(raw, 
+                       "daysemployee_work_home", 
+                       "decision") %>% 
+  pivot_longer(cols = c(`0`, `1`), names_to = "decision") %>% 
+  ggplot(aes(x = factor(daysemployee_work_home), y = value, fill = factor(decision))) +
+  geom_col(position = 'fill') +
+  # geom_text(aes(label = prop), vjust = -0.5) + 
+  # ylim(0, max(target_var_tab$n) * 1.1) +
+  theme_bw() + ggtitle("Proportion of Decision vs Num Days Employee Wants WfH") +
+  geom_text(
+    data = . %>% 
+      group_by(daysemployee_work_home) %>% 
+      summarise(total_n = max(row_total)),
+    aes(x = factor(daysemployee_work_home), label = total_n),  
+    y = 1.01,               
+    vjust = 0,                       
+    fontface = "bold",
+    inherit.aes = FALSE             
+  )
+```
+
+```{r}
+get_target_contingency(raw, 
+                       "education", 
+                       "decision") %>% 
+  pivot_longer(cols = c(`0`, `1`), names_to = "decision") %>% 
+  ggplot(aes(x = factor(education, levels = c("Secondary", "Tertiary", "Graduate")), y = value, fill = factor(decision))) +
+  geom_col(position = 'fill') +
+  # geom_text(aes(label = prop), vjust = -0.5) + 
+  # ylim(0, max(target_var_tab$n) * 1.1) +
+  theme_bw() + ggtitle("Proportion of Decision vs Education") +
+  geom_text(
+    data = . %>% 
+      group_by(education) %>% 
+      summarise(total_n = max(row_total)),
+    aes(x = factor(education), label = total_n),  
+    y = 1.01,               
+    vjust = 0,                       
+    fontface = "bold",
+    inherit.aes = FALSE             
+  )
+```
+
+```{r}
+get_target_contingency(raw, 
+                       "gender", 
+                       "decision") 
+```
+
 
 ## Logit Results {.scrollable}
 
